@@ -1,3 +1,4 @@
+'use client'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -6,19 +7,30 @@ import Image from "next/image"
 import Link from "next/link"
 import SearchSection from "@/components/search-section"
 import { PropertyService, type PropertyFilters } from "@/services/property-service"
+import { useEffect, useState } from "react"
 
-export default async function NewBuildingsPage() {
+export default function NewBuildingsPage() {
   // Получаем список объектов недвижимости
-  const filters: PropertyFilters = {
-    limit: 12,
-    sort: "createdAt",
-    order: "desc",
-    status: "active",
-  }
-
-  const response = await PropertyService.getProperties(filters)
-  const properties = response.properties || []
-
+  const [properties, setProperties] = useState<any>([]);
+    const filters: PropertyFilters = {
+      sort: "views",
+      order: "desc",
+      status: "active",
+    }
+  
+    useEffect(() => {
+      const getProperties = async () => {
+        try {
+          const response = await PropertyService.getProperties(filters)
+          console.log(response.data)
+          setProperties(response?.data || [])
+        } catch (error) {
+          console.error("Ошибка при загрузке объектов:", error)
+        }
+      }
+  
+      getProperties()
+    }, [])
   return (
     <div>
       <SearchSection />
@@ -38,7 +50,7 @@ export default async function NewBuildingsPage() {
               <Card className="overflow-hidden transition-all hover:shadow-md h-full">
                 <div className="relative aspect-[16/9]">
                   <Image
-                    src={property.images[0] || "/placeholder.svg"}
+                    src={property.image || "/placeholder.svg"}
                     alt={property.title}
                     fill
                     className="object-cover"
@@ -54,7 +66,7 @@ export default async function NewBuildingsPage() {
                     <h3 className="text-lg font-bold">{property.title}</h3>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <MapPin className="h-3 w-3" />
-                      <span>{property.location.address}</span>
+                      <span>{property.address}</span>
                     </div>
                   </div>
 
@@ -68,7 +80,7 @@ export default async function NewBuildingsPage() {
                     </div>
                     <div>
                       <div className="text-sm text-muted-foreground">Срок сдачи</div>
-                      <div className="font-medium">{property.completionDate}</div>
+                      <div className="font-medium">{new Date(property.endDate).toLocaleDateString("ru-RU")}</div>
                     </div>
                   </div>
 

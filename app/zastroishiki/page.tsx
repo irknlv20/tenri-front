@@ -8,7 +8,7 @@ import Link from "next/link"
 import { DeveloperService } from "@/services/developer-service"
 import { useEffect, useState } from "react"
 
-export default async function DevelopersPage() {
+export default function DevelopersPage() {
   // Получаем список застройщиков
   const [developers, setDevelopers] = useState<any>([]);
 
@@ -30,7 +30,7 @@ export default async function DevelopersPage() {
       <h1 className="text-3xl font-bold mb-8">Застройщики Кызылорды</h1>
 
       <div className="space-y-8">
-        {developers & developers.map((developer) => (
+        {developers && developers.map((developer) => (
           <Card key={developer.id} className="overflow-hidden">
             <CardContent className="p-0">
               <div className="flex flex-col md:flex-row">
@@ -50,28 +50,23 @@ export default async function DevelopersPage() {
                 </div>
 
                 <div className="p-6 md:w-2/4">
-                  <p className="text-muted-foreground mb-4">{developer.description}</p>
+                  <p className="text-muted-foreground mb-10">{developer.description}</p>
 
                   <div className="grid grid-cols-3 gap-4 mb-4">
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-primary">{developer.projects}</div>
+                      <div className="text-2xl font-bold text-primary">{developer.projects.length}</div>
                       <div className="text-sm text-muted-foreground">Всего проектов</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-green-500">{developer.completedProjects}</div>
+                      <div className="text-2xl font-bold text-green-500">{developer.projects?.filter(p => p.status === 'completed').length || 0}</div>
                       <div className="text-sm text-muted-foreground">Завершено</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-blue-500">{developer.inProgressProjects}</div>
+                      <div className="text-2xl font-bold text-blue-500">{developer.projects?.filter(p => p.status === 'in_progress').length || 0}</div>
                       <div className="text-sm text-muted-foreground">В процессе</div>
                     </div>
                   </div>
 
-                  <Link href={`/zastroishiki/${developer.id}`}>
-                    <Button variant="outline" className="w-full">
-                      Подробнее о застройщике
-                    </Button>
-                  </Link>
                 </div>
 
                 <div className="p-6 md:w-1/4 bg-muted/30">
