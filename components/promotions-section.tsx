@@ -37,7 +37,7 @@ export default  function PromotionsSection() {
         </div>
         <div className="grid gap-6 md:grid-cols-3">
           {promotions && promotions.map((promotion) => (
-            <Link key={promotion.id} href={`/skidki/${promotion.id}`}>
+            <div key={promotion.id}>
               <Card className="h-full overflow-hidden transition-all hover:shadow-md">
                 <CardContent className="p-6 flex flex-col h-full">
                   <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
@@ -51,7 +51,7 @@ export default  function PromotionsSection() {
                   </div>
                 </CardContent>
               </Card>
-            </Link>
+            </div>
           ))}
         </div>
       </div>
