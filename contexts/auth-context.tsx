@@ -2,13 +2,14 @@
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
 import { AuthService, type User } from "@/services/auth-service"
+import { api } from "@/lib/api"
 
 interface AuthContextType {
   user: User | null
   loading: boolean
   error: string | null
   login: (email: string, password: string) => Promise<void>
-  register: (name: string, email: string, phone: string, password: string) => Promise<void>
+  register: (firstName: string, lastName: string, email: string, phone: string, password: string) => Promise<void>
   logout: () => Promise<void>
   clearError: () => void
 }
@@ -32,15 +33,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         // Получаем данные пользователя
-        const response = await fetch("/api/users/me", {
+        const response = await api.get("/users/me", {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         })
 
-        if (response.ok) {
-          const userData = await response.json()
-          setUser(userData)
+        if (response.success) {
+          // const userData = await response.json()
+          // console.log("Response from /api/users/me:", response)
+
+          setUser(response.data)
         } else {
           // Если токен недействителен, удаляем его
           localStorage.removeItem("token")
@@ -65,7 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await AuthService.login({ email, password })
 
       // Сохраняем токен
-      localStorage.setItem("token", response.token)
+      localStorage.setItem("token", response?.data?.token)
       setUser(response.user)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ошибка авторизации")
@@ -76,12 +79,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   // Регистрация
-  const register = async (name: string, email: string, phone: string, password: string) => {
+  const register = async (firstName: string, lastName: string, email: string, phone: string, password: string) => {
     setLoading(true)
     setError(null)
 
     try {
-      const response = await AuthService.register({ name, email, phone, password })
+      const response = await AuthService.register({ firstName, lastName, email, phone, password })
       // Сохраняем токен
       localStorage.setItem("token", response?.data?.token)
       setUser(response.user)

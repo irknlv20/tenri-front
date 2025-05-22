@@ -7,7 +7,8 @@ export interface LoginData {
 }
 
 export interface RegisterData {
-  name: string
+  firstName: string
+  lastName: string
   email: string
   phone: string
   password: string

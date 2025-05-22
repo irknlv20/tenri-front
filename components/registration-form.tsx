@@ -12,8 +12,8 @@ import { useToast } from "@/hooks/use-toast"
 
 export default function RegistrationForm() {
   const [activeTab, setActiveTab] = useState("login")
-  const [surname, setSurname] = useState("")
-  const [name, setName] = useState("")
+  const [lastName, setlastName] = useState("")
+  const [firstName, setfirstName] = useState("")
   const [email, setEmail] = useState("")
   const [phone, setPhone] = useState("")
   const [password, setPassword] = useState("")
@@ -62,8 +62,8 @@ export default function RegistrationForm() {
     setIsSubmitting(true)
 
     try {
-      const fullName = `${surname} ${name}`.trim()
-      await register(fullName, email, phone, password)
+      // const fullName = `${surname} ${name}`.trim()
+      await register(firstName, lastName, email, phone, password)
       toast({
         title: "Успешная регистрация",
         description: "Вы успешно зарегистрировались в системе",
@@ -121,8 +121,8 @@ export default function RegistrationForm() {
             <div className="bg-muted/50 p-3 rounded-md">
               <label className="text-xs text-muted-foreground">Фамилия</label>
               <Input
-                value={surname}
-                onChange={(e) => setSurname(e.target.value)}
+                value={lastName}
+                onChange={(e) => setlastName(e.target.value)}
                 className="border-0 p-0 h-auto text-base focus-visible:ring-0 bg-transparent"
                 required
               />
@@ -131,8 +131,8 @@ export default function RegistrationForm() {
             <div className="bg-muted/50 p-3 rounded-md">
               <label className="text-xs text-muted-foreground">Имя</label>
               <Input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
+                value={firstName}
+                onChange={(e) => setfirstName(e.target.value)}
                 className="border-0 p-0 h-auto text-base focus-visible:ring-0 bg-transparent"
                 required
               />

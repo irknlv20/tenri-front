@@ -28,12 +28,12 @@ export default function Home() {
         <DevelopersSection />
       </Suspense>
 
-      <div className="py-12 bg-muted/30">
+      {/*<div className="py-12 bg-muted/30">
         <div className="container">
           <h2 className="text-2xl font-bold mb-8 text-center">Личный кабинет</h2>
           <RegistrationForm />
         </div>
-      </div>
+      </div>*/}
     </>
   )
 }

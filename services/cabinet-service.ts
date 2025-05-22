@@ -241,10 +241,23 @@ export interface ServiceOrder {
   preferredDate?: string
 }
 
+const getToken = (): string | null => {
+  if (typeof window !== "undefined") {
+    return localStorage.getItem("token")
+  }
+  return null
+}
+
+// Helper to create auth header
+const getAuthHeader = (): Record<string, string> => {
+  const token = getToken()
+  return token ? { Authorization: `Bearer ${token}` } : {}
+}
+
 // Сервис для работы с личным кабинетом
 export const CabinetService = {
   // Получение списка объектов пользователя
-  getUserProperties: () => api.get<{ properties: UserProperty[] }>("/users/me/properties"),
+  getUserProperties: () => api.get<{ properties: UserProperty[] }>("/users/me/properties", { headers: getAuthHeader() }),
 
   // Получение детальной информации об объекте пользователя
   getUserProperty: (id: string) => api.get<UserPropertyDetail>(`/users/me/properties/${id}`),
@@ -285,7 +298,7 @@ export const CabinetService = {
     api.post<{ success: boolean; message: string; booking: Booking }>("/users/me/bookings", {
       propertyId,
       apartmentId,
-    }),
+    }, { headers: getAuthHeader() }),
 
   // Отмена бронирования
   cancelBooking: (id: string) => api.put<{ success: boolean; message: string }>(`/users/me/bookings/${id}/cancel`),

@@ -1,3 +1,5 @@
+"use client"
+
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -5,20 +7,38 @@ import { MapPin, ArrowRight } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
 import { CabinetService } from "@/services/cabinet-service"
-import { cookies } from "next/headers"
-import { redirect } from "next/navigation"
+import {redirect, useRouter} from "next/navigation"
+import {useEffect, useState} from "react";
 
 export default async function MyPropertiesPage() {
-  // Проверяем авторизацию
-  const token = cookies().get("token")?.value
+  const [properties, setProperties] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const router = useRouter()
 
-  if (!token) {
-    redirect("/login")
-  }
+  useEffect(() => {
+    // Check if we have a token
+    const token = localStorage.getItem("token")
+    if (!token) {
+      router.replace("/login?redirect=/cabinet")
+      return
+    }
 
-  // Получаем список объектов пользователя
-  const response = await CabinetService.getUserProperties()
-  const properties = response.properties || []
+    // Fetch properties
+    const fetchProperties = async () => {
+      try {
+        setLoading(true)
+        const response = await CabinetService.getUserProperties()
+        setProperties(response.properties || [])
+      } catch (error) {
+        console.error("Error fetching properties:", error)
+        toast.error("Не удалось загрузить список объектов")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchProperties()
+  }, [router]) // Only depends on router
 
   return (
     <div>

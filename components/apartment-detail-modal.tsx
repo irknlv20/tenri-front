@@ -43,7 +43,7 @@ export default function ApartmentDetailModal({ apartment, trigger }: ApartmentDe
           </h2>
           <div className="flex items-center gap-2 text-muted-foreground mb-4">
             <Building className="h-4 w-4" />
-            <span>{apartment.propertyName || "Корпус " + apartment.number.split("-")[0]}</span>
+            <span>{apartment.propertyName || apartment.building}</span>
             <span className="mx-2">•</span>
             <Calendar className="h-4 w-4" />
             <span>Сдача: {apartment.completionDate}</span>
@@ -75,24 +75,18 @@ export default function ApartmentDetailModal({ apartment, trigger }: ApartmentDe
                         <div className="text-sm text-muted-foreground">Комнат</div>
                         <div className="text-xl font-medium">{apartment.rooms}</div>
                       </div>
-                      <div className="bg-muted/50 p-4 rounded-lg">
-                        <div className="text-sm text-muted-foreground">Высота потолков</div>
-                        <div className="text-xl font-medium">
-                          {apartment.features.find((f) => f.includes("потолк"))?.match(/\d+(\.\d+)?/)?.[0] || "2.7"} м
-                        </div>
-                      </div>
                     </div>
 
                     <div className="bg-muted/50 p-4 rounded-lg">
                       <div className="text-sm text-muted-foreground">Отделка</div>
                       <div className="text-xl font-medium">
-                        {apartment.features.find((f) => f.includes("отделк")) || "Чистовая"}
+                        {apartment.finishing}
                       </div>
                     </div>
 
                     <div className="bg-muted/50 p-4 rounded-lg">
                       <div className="text-sm text-muted-foreground">Вид из окон</div>
-                      <div className="text-xl font-medium">{apartment.direction}</div>
+                      <div className="text-xl font-medium">{apartment.windowView}</div>
                     </div>
                   </div>
                 </div>
@@ -150,7 +144,7 @@ export default function ApartmentDetailModal({ apartment, trigger }: ApartmentDe
                     {apartment.rooms}-комнатная квартира {apartment.area} м²
                   </h3>
                   <p className="text-sm text-muted-foreground">
-                    Корпус {apartment.number.split("-")[0]}, этаж {apartment.floor}
+                    {apartment.building}, этаж {apartment.floor}
                   </p>
                 </div>
               </div>
