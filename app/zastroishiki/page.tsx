@@ -66,7 +66,11 @@ export default function DevelopersPage() {
                       <div className="text-sm text-muted-foreground">В процессе</div>
                     </div>
                   </div>
-
+                  <Link href={`/developer/${developer.id}`}>
+                    <Button variant="outline" className="w-full">
+                      Подробнее о застройщике
+                    </Button>
+                  </Link>
                 </div>
 
                 <div className="p-6 md:w-1/4 bg-muted/30">
