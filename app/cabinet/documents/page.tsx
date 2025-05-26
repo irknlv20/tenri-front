@@ -1,272 +1,372 @@
+"use client"
+
+import type React from "react"
+
+import { useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { FileText, Download, Eye, AlertCircle, Building, Upload, Search, Filter } from "lucide-react"
-import { Input } from "@/components/ui/input"
+import { FileText, Download, Upload, Eye, CheckCircle, Clock } from "lucide-react"
+import { DocumentsService, type StoredDocument } from "@/lib/localStorage"
+import { toast } from "sonner"
+import { useSearchParams } from "next/navigation"
 
 export default function DocumentsPage() {
-  const documents = [
-    {
-      id: "1",
-      title: "Договор купли-продажи",
-      type: "Договор",
-      property: "2-комнатная квартира в ЖК «Кызылорда-Сити»",
-      date: "15.05.2025",
-      status: "Подписан",
-      statusColor: "bg-green-500",
-      size: "2.4 МБ",
-      format: "PDF",
-    },
-    {
-      id: "2",
-      title: "Акт приема-передачи",
-      type: "Акт",
-      property: "2-комнатная квартира в ЖК «Кызылорда-Сити»",
-      date: "15.05.2025",
-      status: "Ожидает подписания",
-      statusColor: "bg-yellow-500",
-      size: "1.8 МБ",
-      format: "PDF",
-    },
-    {
-      id: "3",
-      title: "Технический паспорт",
-      type: "Технический документ",
-      property: "2-комнатная квартира в ЖК «Кызылорда-Сити»",
-      date: "10.05.2025",
-      status: "Доступен",
-      statusColor: "bg-blue-500",
-      size: "3.5 МБ",
-      format: "PDF",
-    },
-    {
-      id: "4",
-      title: "Выписка из ЕГРН",
-      type: "Выписка",
-      property: "2-комнатная квартира в ЖК «Кызылорда-Сити»",
-      date: "12.05.2025",
-      status: "Доступен",
-      statusColor: "bg-blue-500",
-      size: "1.2 МБ",
-      format: "PDF",
-    },
-    {
-      id: "5",
-      title: "Договор ипотечного кредитования",
-      type: "Договор",
-      property: "2-комнатная квартира в ЖК «Кызылорда-Сити»",
-      date: "14.05.2025",
-      status: "Подписан",
-      statusColor: "bg-green-500",
-      size: "4.1 МБ",
-      format: "PDF",
-    },
-  ]
+  const [documents, setDocuments] = useState<StoredDocument[]>([])
+  const [requiredDocuments, setRequiredDocuments] = useState<StoredDocument[]>([])
+  const [uploadedDocuments, setUploadedDocuments] = useState<StoredDocument[]>([])
+  const [signedDocuments, setSignedDocuments] = useState<StoredDocument[]>([])
 
-  const requiredDocuments = [
-    {
-      id: "6",
-      title: "Справка о доходах",
-      type: "Справка",
-      property: "2-комнатная квартира в ЖК «Кызылорда-Сити»",
-      deadline: "20.05.2025",
-      status: "Требуется загрузить",
-      statusColor: "bg-red-500",
-      description: "Справка о доходах за последние 6 месяцев",
-    },
-    {
-      id: "7",
-      title: "Согласие на обработку персональных данных",
-      type: "Согласие",
-      property: "2-комнатная квартира в ЖК «Кызылорда-Сити»",
-      deadline: "18.05.2025",
-      status: "Требуется загрузить",
-      statusColor: "bg-red-500",
-      description: "Подписанное согласие на обработку персональных данных",
-    },
-  ]
+  const searchParams = useSearchParams()
+
+  useEffect(() => {
+    const purchaseId = searchParams.get("purchaseId")
+    if (purchaseId) {
+      loadDocumentsForPurchase(purchaseId)
+    } else {
+      loadDocuments()
+    }
+    initializeRequiredDocuments()
+  }, [])
+
+  const loadDocumentsForPurchase = (purchaseId: string) => {
+    const purchaseDocs = DocumentsService.getByPurchase(purchaseId)
+    setDocuments(purchaseDocs)
+    setRequiredDocuments(purchaseDocs.filter((doc) => doc.status === "required"))
+    setUploadedDocuments(purchaseDocs.filter((doc) => ["uploaded", "verified"].includes(doc.status)))
+    setSignedDocuments(purchaseDocs.filter((doc) => doc.status === "signed"))
+  }
+
+  const loadDocuments = () => {
+    const allDocs = DocumentsService.getAll()
+    setDocuments(allDocs)
+    setRequiredDocuments(allDocs.filter((doc) => doc.status === "required"))
+    setUploadedDocuments(allDocs.filter((doc) => ["uploaded", "verified"].includes(doc.status)))
+    setSignedDocuments(allDocs.filter((doc) => doc.status === "signed"))
+  }
+
+  const initializeRequiredDocuments = () => {
+    const existingDocs = DocumentsService.getAll()
+    const purchaseId = searchParams.get("purchaseId")
+
+    // Если документов нет, создаем базовый набор требуемых документов
+    if (existingDocs.length === 0 && purchaseId) {
+      const requiredDocs = [
+        {
+          title: "Паспорт гражданина РК",
+          type: "passport" as const,
+          status: "required" as const,
+          deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+          description: "Скан-копия паспорта (все страницы)",
+          purchaseId: purchaseId,
+        },
+        {
+          title: "Справка о доходах",
+          type: "income" as const,
+          status: "required" as const,
+          deadline: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+          description: "Справка с места работы за последние 6 месяцев",
+          purchaseId: purchaseId,
+        },
+        {
+          title: "Справка об отсутствии недвижимости",
+          type: "other" as const,
+          status: "required" as const,
+          deadline: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString(),
+          description: "Справка из комитета по управлению земельными ресурсами",
+          purchaseId: purchaseId,
+        },
+      ]
+
+      requiredDocs.forEach((doc) => DocumentsService.add(doc))
+      loadDocumentsForPurchase(purchaseId)
+    }
+  }
+
+  const handleFileUpload = (documentId: string, event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    // Проверяем размер файла (максимум 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("Размер файла не должен превышать 10MB")
+      return
+    }
+
+    // Проверяем тип файла
+    const allowedTypes = ["application/pdf", "image/jpeg", "image/png", "image/jpg"]
+    if (!allowedTypes.includes(file.type)) {
+      toast.error("Разрешены только файлы PDF, JPG, PNG")
+      return
+    }
+
+    DocumentsService.uploadDocument(documentId, file)
+    toast.success("Документ успешно загружен")
+    loadDocuments()
+  }
+
+  const handleDownloadTemplate = (document: StoredDocument) => {
+    const blob = DocumentsService.generateTemplate(document.type, document.title)
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `${document.title.replace(/\s+/g, "_")}_template.pdf`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+    toast.success("Шаблон документа скачан")
+  }
+
+  const handleSignDocument = (documentId: string) => {
+    DocumentsService.updateStatus(documentId, "signed")
+    toast.success("Документ подписан электронной подписью")
+    loadDocuments()
+  }
+
+  const getStatusColor = (status: StoredDocument["status"]) => {
+    switch (status) {
+      case "required":
+        return "bg-red-500"
+      case "uploaded":
+        return "bg-blue-500"
+      case "verified":
+        return "bg-green-500"
+      case "signed":
+        return "bg-purple-500"
+      case "rejected":
+        return "bg-orange-500"
+      default:
+        return "bg-gray-500"
+    }
+  }
+
+  const getStatusText = (status: StoredDocument["status"]) => {
+    switch (status) {
+      case "required":
+        return "Требуется"
+      case "uploaded":
+        return "Загружен"
+      case "verified":
+        return "Проверен"
+      case "signed":
+        return "Подписан"
+      case "rejected":
+        return "Отклонен"
+      default:
+        return status
+    }
+  }
+
+  const isDeadlineNear = (deadline?: string) => {
+    if (!deadline) return false
+    const deadlineDate = new Date(deadline)
+    const now = new Date()
+    const diffDays = Math.ceil((deadlineDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+    return diffDays <= 3 && diffDays > 0
+  }
+
+  const isOverdue = (deadline?: string) => {
+    if (!deadline) return false
+    return new Date(deadline) < new Date()
+  }
 
   return (
-    <div>
-      <h2 className="text-2xl font-bold mb-6">Документы</h2>
+      <div>
+        <h2 className="text-2xl font-bold mb-6">Документы</h2>
 
-      <div className="flex flex-col md:flex-row gap-4 mb-6">
-        <div className="relative flex-grow">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Поиск документов" className="pl-10" />
-        </div>
-        <Button variant="outline" className="gap-2">
-          <Filter className="h-4 w-4" />
-          Фильтры
-        </Button>
-        <Button className="gap-2">
-          <Upload className="h-4 w-4" />
-          Загрузить
-        </Button>
-      </div>
+        <Tabs defaultValue="required">
+          <TabsList className="mb-6">
+            <TabsTrigger value="required">Требуется загрузить ({requiredDocuments.length})</TabsTrigger>
+            <TabsTrigger value="uploaded">Загруженные ({uploadedDocuments.length})</TabsTrigger>
+            <TabsTrigger value="signed">Подписанные ({signedDocuments.length})</TabsTrigger>
+          </TabsList>
 
-      <Tabs defaultValue="all">
-        <TabsList className="mb-6">
-          <TabsTrigger value="all">Все документы</TabsTrigger>
-          <TabsTrigger value="required">Требуется загрузить</TabsTrigger>
-          <TabsTrigger value="signed">Подписанные</TabsTrigger>
-        </TabsList>
+          <TabsContent value="required">
+            <div className="space-y-4">
+              {requiredDocuments.length > 0 ? (
+                  requiredDocuments.map((document) => (
+                      <Card key={document.id}>
+                        <CardContent className="p-6">
+                          <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+                            <div className="flex items-center gap-3 flex-grow">
+                              <div className="bg-muted p-3 rounded-md">
+                                <FileText className="h-6 w-6 text-primary" />
+                              </div>
+                              <div className="flex-grow">
+                                <h3 className="font-medium">{document.title}</h3>
+                                <p className="text-sm text-muted-foreground mt-1">{document.description}</p>
+                                {document.deadline && (
+                                    <div
+                                        className={`flex items-center gap-1 text-xs mt-2 ${
+                                            isOverdue(document.deadline)
+                                                ? "text-red-500"
+                                                : isDeadlineNear(document.deadline)
+                                                    ? "text-orange-500"
+                                                    : "text-muted-foreground"
+                                        }`}
+                                    >
+                                      <Clock className="h-3 w-3" />
+                                      <span>
+                                Срок: {new Date(document.deadline).toLocaleDateString()}
+                                        {isOverdue(document.deadline) && " (просрочен)"}
+                                        {isDeadlineNear(document.deadline) &&
+                                            !isOverdue(document.deadline) &&
+                                            " (скоро истекает)"}
+                              </span>
+                                    </div>
+                                )}
+                              </div>
+                            </div>
 
-        <TabsContent value="all">
-          <div className="space-y-4">
-            {documents.map((document) => (
-              <Card key={document.id}>
-                <CardContent className="p-4">
-                  <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
-                    <div className="flex items-center gap-3 flex-grow">
-                      <div className="bg-muted p-3 rounded-md">
-                        <FileText className="h-6 w-6 text-primary" />
-                      </div>
-                      <div>
-                        <h3 className="font-medium">{document.title}</h3>
-                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground mt-1">
-                          <span>{document.type}</span>
-                          <span>•</span>
-                          <span>{document.date}</span>
-                          <span>•</span>
-                          <span>{document.size}</span>
-                          <span>•</span>
-                          <span>{document.format}</span>
+                            <div className="flex items-center gap-2 w-full md:w-auto">
+                              <Badge className={`${getStatusColor(document.status)} text-white border-0`}>
+                                {getStatusText(document.status)}
+                              </Badge>
+
+                              <div className="flex gap-2 ml-auto">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleDownloadTemplate(document)}
+                                    className="gap-1"
+                                >
+                                  <Download className="h-4 w-4" />
+                                  Шаблон
+                                </Button>
+
+                                <div className="relative">
+                                  <input
+                                      type="file"
+                                      id={`upload-${document.id}`}
+                                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                      accept=".pdf,.jpg,.jpeg,.png"
+                                      onChange={(e) => handleFileUpload(document.id, e)}
+                                  />
+                                  <Button size="sm" className="gap-1">
+                                    <Upload className="h-4 w-4" />
+                                    Загрузить
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                  ))
+              ) : (
+                  <div className="text-center py-8 text-muted-foreground">Все необходимые документы загружены</div>
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="uploaded">
+            <div className="space-y-4">
+              {uploadedDocuments.map((document) => (
+                  <Card key={document.id}>
+                    <CardContent className="p-6">
+                      <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+                        <div className="flex items-center gap-3 flex-grow">
+                          <div className="bg-muted p-3 rounded-md">
+                            <FileText className="h-6 w-6 text-primary" />
+                          </div>
+                          <div>
+                            <h3 className="font-medium">{document.title}</h3>
+                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground mt-1">
+                              {document.fileName && <span>{document.fileName}</span>}
+                              {document.fileSize && (
+                                  <>
+                                    <span>•</span>
+                                    <span>{(document.fileSize / 1024 / 1024).toFixed(2)} MB</span>
+                                  </>
+                              )}
+                              {document.uploadDate && (
+                                  <>
+                                    <span>•</span>
+                                    <span>Загружен: {new Date(document.uploadDate).toLocaleDateString()}</span>
+                                  </>
+                              )}
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </div>
 
-                    <div className="flex items-center gap-2 w-full md:w-auto">
-                      <Badge className={`${document.statusColor} text-white border-0`}>{document.status}</Badge>
+                        <div className="flex items-center gap-2 w-full md:w-auto">
+                          <Badge className={`${getStatusColor(document.status)} text-white border-0`}>
+                            {getStatusText(document.status)}
+                          </Badge>
 
-                      <div className="flex gap-2 ml-auto">
-                        <Button variant="outline" size="sm" className="gap-1">
-                          <Eye className="h-4 w-4" />
-                          <span className="hidden sm:inline">Просмотр</span>
-                        </Button>
-                        <Button variant="outline" size="sm" className="gap-1">
-                          <Download className="h-4 w-4" />
-                          <span className="hidden sm:inline">Скачать</span>
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
+                          <div className="flex gap-2 ml-auto">
+                            <Button variant="outline" size="sm" className="gap-1">
+                              <Eye className="h-4 w-4" />
+                              Просмотр
+                            </Button>
 
-                  <div className="mt-3 text-sm">
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Building className="h-4 w-4" />
-                      <span>{document.property}</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="required">
-          <div className="space-y-4">
-            {requiredDocuments.map((document) => (
-              <Card key={document.id}>
-                <CardContent className="p-4">
-                  <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
-                    <div className="flex items-center gap-3 flex-grow">
-                      <div className="bg-muted p-3 rounded-md">
-                        <FileText className="h-6 w-6 text-primary" />
-                      </div>
-                      <div>
-                        <h3 className="font-medium">{document.title}</h3>
-                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground mt-1">
-                          <span>{document.type}</span>
-                          <span>•</span>
-                          <span>Срок: {document.deadline}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2 w-full md:w-auto">
-                      <Badge className={`${document.statusColor} text-white border-0`}>{document.status}</Badge>
-
-                      <div className="flex gap-2 ml-auto">
-                        <Button size="sm" className="gap-1">
-                          <Upload className="h-4 w-4" />
-                          <span>Загрузить</span>
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-3 text-sm">
-                    <div className="flex items-center gap-2 text-muted-foreground mb-2">
-                      <Building className="h-4 w-4" />
-                      <span>{document.property}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-yellow-600">
-                      <AlertCircle className="h-4 w-4" />
-                      <span>{document.description}</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="signed">
-          <div className="space-y-4">
-            {documents
-              .filter((doc) => doc.status === "Подписан")
-              .map((document) => (
-                <Card key={document.id}>
-                  <CardContent className="p-4">
-                    <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
-                      <div className="flex items-center gap-3 flex-grow">
-                        <div className="bg-muted p-3 rounded-md">
-                          <FileText className="h-6 w-6 text-primary" />
-                        </div>
-                        <div>
-                          <h3 className="font-medium">{document.title}</h3>
-                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground mt-1">
-                            <span>{document.type}</span>
-                            <span>•</span>
-                            <span>{document.date}</span>
-                            <span>•</span>
-                            <span>{document.size}</span>
-                            <span>•</span>
-                            <span>{document.format}</span>
+                            {document.status === "verified" && (
+                                <Button size="sm" onClick={() => handleSignDocument(document.id)} className="gap-1">
+                                  <CheckCircle className="h-4 w-4" />
+                                  Подписать
+                                </Button>
+                            )}
                           </div>
                         </div>
                       </div>
+                    </CardContent>
+                  </Card>
+              ))}
+            </div>
+          </TabsContent>
 
-                      <div className="flex items-center gap-2 w-full md:w-auto">
-                        <Badge className={`${document.statusColor} text-white border-0`}>{document.status}</Badge>
+          <TabsContent value="signed">
+            <div className="space-y-4">
+              {signedDocuments.map((document) => (
+                  <Card key={document.id}>
+                    <CardContent className="p-6">
+                      <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+                        <div className="flex items-center gap-3 flex-grow">
+                          <div className="bg-muted p-3 rounded-md">
+                            <FileText className="h-6 w-6 text-primary" />
+                          </div>
+                          <div>
+                            <h3 className="font-medium">{document.title}</h3>
+                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground mt-1">
+                              {document.signDate && (
+                                  <span>Подписан: {new Date(document.signDate).toLocaleDateString()}</span>
+                              )}
+                              {document.fileName && (
+                                  <>
+                                    <span>•</span>
+                                    <span>{document.fileName}</span>
+                                  </>
+                              )}
+                            </div>
+                          </div>
+                        </div>
 
-                        <div className="flex gap-2 ml-auto">
-                          <Button variant="outline" size="sm" className="gap-1">
-                            <Eye className="h-4 w-4" />
-                            <span className="hidden sm:inline">Просмотр</span>
-                          </Button>
-                          <Button variant="outline" size="sm" className="gap-1">
-                            <Download className="h-4 w-4" />
-                            <span className="hidden sm:inline">Скачать</span>
-                          </Button>
+                        <div className="flex items-center gap-2 w-full md:w-auto">
+                          <Badge className={`${getStatusColor(document.status)} text-white border-0`}>
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                            {getStatusText(document.status)}
+                          </Badge>
+
+                          <div className="flex gap-2 ml-auto">
+                            <Button variant="outline" size="sm" className="gap-1">
+                              <Eye className="h-4 w-4" />
+                              Просмотр
+                            </Button>
+                            <Button variant="outline" size="sm" className="gap-1">
+                              <Download className="h-4 w-4" />
+                              Скачать
+                            </Button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-
-                    <div className="mt-3 text-sm">
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <Building className="h-4 w-4" />
-                        <span>{document.property}</span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                    </CardContent>
+                  </Card>
               ))}
-          </div>
-        </TabsContent>
-      </Tabs>
-    </div>
+            </div>
+          </TabsContent>
+        </Tabs>
+      </div>
   )
 }

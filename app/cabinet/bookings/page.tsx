@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -9,123 +8,80 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { MapPin, ArrowRight, Clock, AlertCircle } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
-import { CabinetService } from "@/services/cabinet-service"
+import { BookingsService, type StoredBooking } from "@/lib/localStorage"
 import { toast } from "sonner"
 
-// Updated interface to match server response
-interface Apartment {
-  id: string
-  area: number
-  floor: number
-  price: number
-  rooms: number
-  building: string
-  floorPlanImage: string
-}
-
-interface Project {
-  id: string
-  name: string
-  image: string
-  address: string
-}
-
-interface Booking {
-  id: string
-  status: string
-  bookedAt: string
-  apartment: Apartment
-  project: Project
-}
-
 export default function BookingsPage() {
-  const [activeBookings, setActiveBookings] = useState<Booking[]>([])
-  const [expiredBookings, setExpiredBookings] = useState<Booking[]>([])
+  const [activeBookings, setActiveBookings] = useState<StoredBooking[]>([])
+  const [expiredBookings, setExpiredBookings] = useState<StoredBooking[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState("active")
-  const router = useRouter()
 
   useEffect(() => {
-    const token = localStorage.getItem("token")
-    if (!token) {
-      router.replace("/login?redirect=" + encodeURIComponent(window.location.pathname))
-      return
-    }
-
-    const fetchBookings = async () => {
+    const loadBookings = () => {
       try {
-        setIsLoading(true)
+        // Mark expired bookings first
+        BookingsService.markExpired()
 
-        // Fetch active bookings
-        const activeResponse = await CabinetService.getBookings("pending")
-        setActiveBookings(activeResponse.data?.bookings || [])
+        const active = BookingsService.getByStatus("active")
+        const expired = BookingsService.getByStatus("expired").concat(BookingsService.getByStatus("cancelled"))
 
-        // Fetch expired bookings
-        const expiredResponse = await CabinetService.getBookings("expired")
-        setExpiredBookings(expiredResponse.data?.bookings || [])
+        setActiveBookings(active)
+        setExpiredBookings(expired)
       } catch (error) {
-        console.error("Error fetching bookings:", error)
-        toast.error("Не удалось загрузить список бронирований")
+        console.error("Error loading bookings:", error)
+        toast.error("Ошибка при загрузке бронирований")
       } finally {
         setIsLoading(false)
       }
     }
 
-    fetchBookings()
-  }, [router])
+    loadBookings()
+  }, [])
 
-  const handleExtendBooking = async (id: string) => {
+  const handleExtendBooking = (id: string) => {
     try {
-      setIsLoading(true)
-      const response = await CabinetService.extendBooking(id)
-      toast.success("Бронирование успешно продлено")
+      BookingsService.extend(id)
 
-      // Refresh bookings after extension
-      const activeResponse = await CabinetService.getBookings("pending")
-      setActiveBookings(activeResponse.bookings || [])
+      // Refresh bookings
+      const active = BookingsService.getByStatus("active")
+      setActiveBookings(active)
+
+      toast.success("Бронирование продлено на 7 дней")
     } catch (error) {
       console.error("Error extending booking:", error)
       toast.error("Ошибка при продлении бронирования")
-    } finally {
-      setIsLoading(false)
     }
   }
 
-  const handleCancelBooking = async (id: string) => {
+  const handleCancelBooking = (id: string) => {
     if (!window.confirm("Вы уверены, что хотите отменить бронирование?")) {
       return
     }
 
     try {
-      setIsLoading(true)
-      await CabinetService.cancelBooking(id)
-      toast.success("Бронирование отменено")
+      BookingsService.cancel(id)
 
       // Move booking from active to expired
-      const activeResponse = await CabinetService.getBookings("pending")
-      const expiredResponse = await CabinetService.getBookings("expired")
+      const active = BookingsService.getByStatus("active")
+      const expired = BookingsService.getByStatus("expired").concat(BookingsService.getByStatus("cancelled"))
 
-      setActiveBookings(activeResponse.bookings || [])
-      setExpiredBookings(expiredResponse.bookings || [])
+      setActiveBookings(active)
+      setExpiredBookings(expired)
+
+      toast.success("Бронирование отменено")
     } catch (error) {
       console.error("Error cancelling booking:", error)
       toast.error("Ошибка при отмене бронирования")
-    } finally {
-      setIsLoading(false)
     }
   }
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
       case "active":
-      case "активно":
-      case "pending":
         return "bg-green-500"
       case "expired":
-      case "истекло":
         return "bg-gray-500"
       case "cancelled":
-      case "отменено":
         return "bg-red-500"
       default:
         return "bg-blue-500"
@@ -134,7 +90,7 @@ export default function BookingsPage() {
 
   const getStatusText = (status: string) => {
     switch (status.toLowerCase()) {
-      case "pending":
+      case "active":
         return "Активно"
       case "expired":
         return "Истекло"
@@ -143,6 +99,13 @@ export default function BookingsPage() {
       default:
         return status
     }
+  }
+
+  const isExpiringSoon = (expiryDate: string) => {
+    const expiry = new Date(expiryDate)
+    const now = new Date()
+    const diffHours = (expiry.getTime() - now.getTime()) / (1000 * 60 * 60)
+    return diffHours <= 24 && diffHours > 0
   }
 
   if (isLoading) {
@@ -160,10 +123,10 @@ export default function BookingsPage() {
       <div>
         <h2 className="text-2xl font-bold mb-6">Бронирования</h2>
 
-        <Tabs defaultValue={activeTab} onValueChange={setActiveTab}>
+        <Tabs defaultValue="active">
           <TabsList className="mb-6">
-            <TabsTrigger value="active">Активные</TabsTrigger>
-            <TabsTrigger value="expired">Истекшие</TabsTrigger>
+            <TabsTrigger value="active">Активные ({activeBookings.length})</TabsTrigger>
+            <TabsTrigger value="expired">Истекшие ({expiredBookings.length})</TabsTrigger>
           </TabsList>
 
           <TabsContent value="active">
@@ -175,68 +138,73 @@ export default function BookingsPage() {
                           <div className="flex flex-col md:flex-row">
                             <div className="relative w-full md:w-1/4 aspect-video md:aspect-auto">
                               <Image
-                                  src={booking.project.image || "/placeholder.svg"}
-                                  alt={booking.project.name}
+                                  src={booking.image || "/placeholder.svg"}
+                                  alt={booking.title}
                                   fill
                                   className="object-cover"
                               />
-                              <Badge className={`absolute top-2 left-2 ${getStatusColor(booking.status)} text-white border-0`}>
+                              <Badge
+                                  className={`absolute top-2 left-2 ${getStatusColor(booking.status)} text-white border-0`}
+                              >
                                 {getStatusText(booking.status)}
                               </Badge>
+                              {isExpiringSoon(booking.expiryDate) && (
+                                  <Badge className="absolute top-2 right-2 bg-orange-500 text-white border-0">
+                                    Истекает скоро
+                                  </Badge>
+                              )}
                             </div>
 
                             <div className="p-6 flex-1">
-                              <h3 className="text-xl font-bold mb-2">{booking.project.name}</h3>
+                              <h3 className="text-xl font-bold mb-2">{booking.title}</h3>
 
                               <div className="flex items-center gap-2 text-muted-foreground mb-4">
                                 <MapPin className="h-4 w-4" />
-                                <span>{booking.project.address}</span>
+                                <span>{booking.address}</span>
                               </div>
 
                               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                                 <div>
-                                  <p className="text-sm text-muted-foreground">Площадь</p>
-                                  <p className="font-medium">{booking.apartment.area} м²</p>
+                                  <div className="text-sm text-muted-foreground">Площадь</div>
+                                  <div className="font-medium">{booking.area} м²</div>
                                 </div>
                                 <div>
-                                  <p className="text-sm text-muted-foreground">Этаж</p>
-                                  <p className="font-medium">{booking.apartment.floor}</p>
+                                  <div className="text-sm text-muted-foreground">Этаж</div>
+                                  <div className="font-medium">{booking.floor}</div>
                                 </div>
                                 <div>
-                                  <p className="text-sm text-muted-foreground">Стоимость</p>
-                                  <p className="font-medium">{booking.apartment.price?.toLocaleString()} ₸</p>
+                                  <div className="text-sm text-muted-foreground">Стоимость</div>
+                                  <div className="font-medium">{booking.price.toLocaleString()} ₸</div>
+                                  <div className="text-xs text-muted-foreground">
+                                    {booking.pricePerSqm.toLocaleString()} ₸/м²
+                                  </div>
                                 </div>
                                 <div>
-                                  <p className="text-sm text-muted-foreground">Корпус</p>
-                                  <p className="font-medium">{booking.apartment.building}</p>
+                                  <div className="text-sm text-muted-foreground">Бронь до</div>
+                                  <div className="font-medium">{new Date(booking.expiryDate).toLocaleDateString()}</div>
+                                  <div className="text-xs text-muted-foreground">
+                                    Оплачено: {booking.bookingFee.toLocaleString()} ₸
+                                  </div>
                                 </div>
                               </div>
 
                               <div className="flex items-center gap-2 text-sm text-primary mb-4">
                                 <Clock className="h-4 w-4" />
-                                <span>Дата бронирования: {new Date(booking.bookedAt).toLocaleDateString()}</span>
+                                <span>Следующий шаг: {booking.nextStep}</span>
                               </div>
 
                               <div className="flex flex-wrap gap-2">
                                 <Link href={`/cabinet/bookings/${booking.id}`}>
-                                  <Button variant="default" className="flex items-center gap-1">
+                                  <Button variant="default" size="sm" className="gap-1">
                                     Подробнее
                                     <ArrowRight className="h-4 w-4" />
                                   </Button>
                                 </Link>
-                                <Button
-                                    variant="outline"
-                                    onClick={() => handleExtendBooking(booking.id)}
-                                    disabled={isLoading}
-                                >
+                                <Button variant="outline" size="sm" onClick={() => handleExtendBooking(booking.id)}>
                                   Продлить бронь
                                 </Button>
-                                <Button
-                                    variant="outline"
-                                    onClick={() => handleCancelBooking(booking.id)}
-                                    disabled={isLoading}
-                                >
-                                  Отменить
+                                <Button variant="outline" size="sm" onClick={() => handleCancelBooking(booking.id)}>
+                                  Отменить бронь
                                 </Button>
                               </div>
                             </div>
@@ -245,7 +213,14 @@ export default function BookingsPage() {
                       </Card>
                   ))
               ) : (
-                  <div className="text-center py-8 text-muted-foreground">У вас пока нет активных бронирований</div>
+                  <div className="text-center py-8 text-muted-foreground">
+                    У вас пока нет активных бронирований
+                    <div className="mt-4">
+                      <Link href="/novostroiki">
+                        <Button>Посмотреть объекты</Button>
+                      </Link>
+                    </div>
+                  </div>
               )}
             </div>
           </TabsContent>
@@ -259,53 +234,57 @@ export default function BookingsPage() {
                           <div className="flex flex-col md:flex-row">
                             <div className="relative w-full md:w-1/4 aspect-video md:aspect-auto">
                               <Image
-                                  src={booking.project.image || "/placeholder.svg"}
-                                  alt={booking.project.name}
+                                  src={booking.image || "/placeholder.svg"}
+                                  alt={booking.title}
                                   fill
                                   className="object-cover"
                               />
-                              <Badge className={`absolute top-2 left-2 ${getStatusColor(booking.status)} text-white border-0`}>
+                              <Badge
+                                  className={`absolute top-2 left-2 ${getStatusColor(booking.status)} text-white border-0`}
+                              >
                                 {getStatusText(booking.status)}
                               </Badge>
                             </div>
 
                             <div className="p-6 flex-1">
-                              <h3 className="text-xl font-bold mb-2">{booking.project.name}</h3>
+                              <h3 className="text-xl font-bold mb-2">{booking.title}</h3>
 
                               <div className="flex items-center gap-2 text-muted-foreground mb-4">
                                 <MapPin className="h-4 w-4" />
-                                <span>{booking.project.address}</span>
+                                <span>{booking.address}</span>
                               </div>
 
                               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                                 <div>
-                                  <p className="text-sm text-muted-foreground">Площадь</p>
-                                  <p className="font-medium">{booking.apartment.area} м²</p>
+                                  <div className="text-sm text-muted-foreground">Площадь</div>
+                                  <div className="font-medium">{booking.area} м²</div>
                                 </div>
                                 <div>
-                                  <p className="text-sm text-muted-foreground">Этаж</p>
-                                  <p className="font-medium">{booking.apartment.floor}</p>
+                                  <div className="text-sm text-muted-foreground">Этаж</div>
+                                  <div className="font-medium">{booking.floor}</div>
                                 </div>
                                 <div>
-                                  <p className="text-sm text-muted-foreground">Стоимость</p>
-                                  <p className="font-medium">{booking.apartment.price?.toLocaleString()} ₸</p>
+                                  <div className="text-sm text-muted-foreground">Стоимость</div>
+                                  <div className="font-medium">{booking.price.toLocaleString()} ₸</div>
+                                  <div className="text-xs text-muted-foreground">
+                                    {booking.pricePerSqm.toLocaleString()} ₸/м²
+                                  </div>
                                 </div>
                                 <div>
-                                  <p className="text-sm text-muted-foreground">Бронирование</p>
-                                  <p className="font-medium">{new Date(booking.bookedAt).toLocaleDateString()}</p>
+                                  <div className="text-sm text-muted-foreground">Дата бронирования</div>
+                                  <div className="font-medium">{new Date(booking.bookingDate).toLocaleDateString()}</div>
                                 </div>
                               </div>
 
                               <div className="flex items-center gap-2 text-sm text-destructive mb-4">
                                 <AlertCircle className="h-4 w-4" />
-                                <span>Статус бронирования: {getStatusText(booking.status)}</span>
+                                <span>{booking.nextStep}</span>
                               </div>
 
                               <div className="flex flex-wrap gap-2">
-                                <Link href={`/property/${booking.project.id}`}>
-                                  <Button variant="default" className="flex items-center gap-1">
+                                <Link href={`/property/${booking.propertyId}`}>
+                                  <Button variant="default" size="sm" className="gap-1">
                                     Забронировать снова
-                                    <ArrowRight className="h-4 w-4" />
                                   </Button>
                                 </Link>
                               </div>

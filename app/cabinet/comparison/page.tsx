@@ -1,224 +1,217 @@
+"use client"
+
+import { useState, useEffect } from "react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { MapPin, Trash2, Plus } from "lucide-react"
+import { MapPin, ArrowRight, X, Trash2 } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
+import { ComparisonService, type StoredComparison } from "@/lib/localStorage"
+import { toast } from "sonner"
 
 export default function ComparisonPage() {
-  const comparisonItems = [
-    {
-      id: "1",
-      title: "3-комнатная квартира в ЖК «Кызылорда-Сити»",
-      image: "/placeholder.svg?height=150&width=250",
-      address: "мкр. Центральный, ул. Абая, д. 5",
-      area: 85.3,
-      floor: 9,
-      price: 32500000,
-      pricePerSqm: 380000,
-      completionDate: "IV кв. 2025",
-      developer: "TENRI Development",
-      ceilingHeight: 2.8,
-      finishing: "Чистовая",
-      windowView: "Во двор",
-      parking: "Подземный",
-      heating: "Центральное",
-      buildingType: "Монолитно-каркасный",
-    },
-    {
-      id: "2",
-      title: "3-комнатная квартира в ЖК «Жайлы»",
-      image: "/placeholder.svg?height=150&width=250",
-      address: "мкр. Шымбулак, ул. Казыбек би, д. 12",
-      area: 87.2,
-      floor: 7,
-      price: 30520000,
-      pricePerSqm: 350000,
-      completionDate: "II кв. 2024",
-      developer: "Строй Инвест",
-      ceilingHeight: 2.7,
-      finishing: "Чистовая",
-      windowView: "На улицу",
-      parking: "Наземный",
-      heating: "Центральное",
-      buildingType: "Монолитно-каркасный",
-    },
-    {
-      id: "3",
-      title: "3-комнатная квартира в ЖК «Арман»",
-      image: "/placeholder.svg?height=150&width=250",
-      address: "мкр. Сырдарья, ул. Токмагамбетова, д. 8",
-      area: 82.5,
-      floor: 4,
-      price: 31350000,
-      pricePerSqm: 380000,
-      completionDate: "III кв. 2024",
-      developer: "Кызылорда Строй",
-      ceilingHeight: 2.8,
-      finishing: "Предчистовая",
-      windowView: "На улицу и во двор",
-      parking: "Подземный",
-      heating: "Центральное",
-      buildingType: "Кирпичный",
-    },
+  const [comparison, setComparison] = useState<StoredComparison[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    const loadComparison = () => {
+      try {
+        const storedComparison = ComparisonService.getAll()
+        setComparison(storedComparison)
+      } catch (error) {
+        console.error("Error loading comparison:", error)
+        toast.error("Ошибка при загрузке сравнения")
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadComparison()
+  }, [])
+
+  const handleRemoveFromComparison = (id: string) => {
+    try {
+      ComparisonService.remove(id)
+      setComparison((prev) => prev.filter((item) => item.id !== id))
+      toast.success("Объект удален из сравнения")
+    } catch (error) {
+      console.error("Error removing from comparison:", error)
+      toast.error("Ошибка при удалении из сравнения")
+    }
+  }
+
+  const handleClearAll = () => {
+    if (window.confirm("Вы уверены, что хотите очистить все сравнение?")) {
+      try {
+        ComparisonService.clear()
+        setComparison([])
+        toast.success("Сравнение очищено")
+      } catch (error) {
+        console.error("Error clearing comparison:", error)
+        toast.error("Ошибка при очистке сравнения")
+      }
+    }
+  }
+
+  if (isLoading) {
+    return (
+        <div>
+          <h2 className="text-2xl font-bold mb-6">Сравнение объектов</h2>
+          <div className="flex items-center justify-center p-20">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        </div>
+    )
+  }
+
+  if (comparison.length === 0) {
+    return (
+        <div>
+          <h2 className="text-2xl font-bold mb-6">Сравнение объектов</h2>
+          <div className="text-center py-12">
+            <div className="h-12 w-12 bg-muted rounded-lg mx-auto mb-4 flex items-center justify-center">
+              <ArrowRight className="h-6 w-6 text-muted-foreground" />
+            </div>
+            <h3 className="text-lg font-medium mb-2">Нет объектов для сравнения</h3>
+            <p className="text-muted-foreground mb-4">
+              Добавьте объекты в сравнение, чтобы увидеть их характеристики рядом
+            </p>
+            <Link href="/novostroiki">
+              <Button>Посмотреть объекты</Button>
+            </Link>
+          </div>
+        </div>
+    )
+  }
+
+  const comparisonFields = [
+    { key: "price", label: "Стоимость", format: (value: number) => `${value.toLocaleString()} ₸` },
+    { key: "pricePerSqm", label: "Цена за м²", format: (value: number) => `${value.toLocaleString()} ₸/м²` },
+    { key: "area", label: "Площадь", format: (value: number) => `${value} м²` },
+    { key: "floor", label: "Этаж", format: (value: number) => value.toString() },
+    { key: "ceilingHeight", label: "Высота потолков", format: (value: number) => `${value} м` },
+    { key: "finishing", label: "Отделка", format: (value: string) => value },
+    { key: "windowView", label: "Вид из окон", format: (value: string) => value },
+    { key: "parking", label: "Парковка", format: (value: string) => value },
+    { key: "heating", label: "Отопление", format: (value: string) => value },
+    { key: "buildingType", label: "Тип здания", format: (value: string) => value },
+    { key: "completionDate", label: "Срок сдачи", format: (value: string) => new Date(value).toLocaleDateString() },
+    { key: "developer", label: "Застройщик", format: (value: string) => value },
   ]
 
   return (
-    <div>
-      <h2 className="text-2xl font-bold mb-6">Сравнение</h2>
+      <div>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold">Сравнение объектов</h2>
+          <Button variant="outline" size="sm" onClick={handleClearAll}>
+            <Trash2 className="h-4 w-4 mr-2" />
+            Очистить все
+          </Button>
+        </div>
 
-      <Tabs defaultValue="apartments">
-        <TabsList className="mb-6">
-          <TabsTrigger value="apartments">Квартиры</TabsTrigger>
-          <TabsTrigger value="complexes">Жилые комплексы</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="apartments">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[250px]">Характеристики</TableHead>
-                  {comparisonItems.map((item) => (
-                    <TableHead key={item.id} className="min-w-[250px]">
-                      <div className="relative aspect-video w-full mb-2">
-                        <Image
-                          src={item.image || "/placeholder.svg"}
-                          alt={item.title}
-                          fill
-                          className="object-cover rounded-md"
-                        />
+        {/* Mobile view - cards */}
+        <div className="block lg:hidden space-y-6">
+          {comparison.map((item) => (
+              <Card key={item.id}>
+                <CardHeader className="relative">
+                  <Button
+                      variant="ghost"
+                      size="sm"
+                      className="absolute top-2 right-2 h-8 w-8 p-0"
+                      onClick={() => handleRemoveFromComparison(item.id)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                  <div className="relative aspect-video rounded-lg overflow-hidden mb-4">
+                    <Image src={item.image || "/placeholder.svg"} alt={item.title} fill className="object-cover" />
+                  </div>
+                  <CardTitle className="text-lg">{item.title}</CardTitle>
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <MapPin className="h-4 w-4" />
+                    <span className="text-sm">{item.address}</span>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {comparisonFields.map((field) => (
+                      <div key={field.key} className="flex justify-between">
+                        <span className="text-sm text-muted-foreground">{field.label}:</span>
+                        <span className="text-sm font-medium">{field.format((item as any)[field.key])}</span>
                       </div>
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h3 className="font-bold text-left">{item.title}</h3>
-                          <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
-                            <MapPin className="h-3 w-3" />
-                            <span>{item.address}</span>
-                          </div>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-muted-foreground hover:text-destructive -mt-1 -mr-2"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableHead>
                   ))}
-                  <TableHead className="w-[100px]">
-                    <Button
-                      variant="outline"
-                      className="w-full h-full flex flex-col items-center justify-center gap-2 min-h-[150px]"
-                    >
-                      <Plus className="h-6 w-6" />
-                      <span>Добавить</span>
+                  <Link href={`/property/${item.propertyId}`} className="block mt-4">
+                    <Button className="w-full" size="sm">
+                      Подробнее
+                      <ArrowRight className="h-4 w-4 ml-2" />
                     </Button>
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                <TableRow>
-                  <TableCell className="font-medium">Цена</TableCell>
-                  {comparisonItems.map((item) => (
-                    <TableCell key={`${item.id}-price`}>
-                      <div className="font-bold text-primary">{item.price.toLocaleString()} ₸</div>
-                      <div className="text-xs text-muted-foreground">{item.pricePerSqm.toLocaleString()} ₸/м²</div>
-                    </TableCell>
-                  ))}
-                  <TableCell></TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell className="font-medium">Площадь</TableCell>
-                  {comparisonItems.map((item) => (
-                    <TableCell key={`${item.id}-area`}>{item.area} м²</TableCell>
-                  ))}
-                  <TableCell></TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell className="font-medium">Этаж</TableCell>
-                  {comparisonItems.map((item) => (
-                    <TableCell key={`${item.id}-floor`}>{item.floor}</TableCell>
-                  ))}
-                  <TableCell></TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell className="font-medium">Срок сдачи</TableCell>
-                  {comparisonItems.map((item) => (
-                    <TableCell key={`${item.id}-completion`}>{item.completionDate}</TableCell>
-                  ))}
-                  <TableCell></TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell className="font-medium">Застройщик</TableCell>
-                  {comparisonItems.map((item) => (
-                    <TableCell key={`${item.id}-developer`}>{item.developer}</TableCell>
-                  ))}
-                  <TableCell></TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell className="font-medium">Высота потолков</TableCell>
-                  {comparisonItems.map((item) => (
-                    <TableCell key={`${item.id}-ceiling`}>{item.ceilingHeight} м</TableCell>
-                  ))}
-                  <TableCell></TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell className="font-medium">Отделка</TableCell>
-                  {comparisonItems.map((item) => (
-                    <TableCell key={`${item.id}-finishing`}>{item.finishing}</TableCell>
-                  ))}
-                  <TableCell></TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell className="font-medium">Вид из окон</TableCell>
-                  {comparisonItems.map((item) => (
-                    <TableCell key={`${item.id}-view`}>{item.windowView}</TableCell>
-                  ))}
-                  <TableCell></TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell className="font-medium">Паркинг</TableCell>
-                  {comparisonItems.map((item) => (
-                    <TableCell key={`${item.id}-parking`}>{item.parking}</TableCell>
-                  ))}
-                  <TableCell></TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell className="font-medium">Отопление</TableCell>
-                  {comparisonItems.map((item) => (
-                    <TableCell key={`${item.id}-heating`}>{item.heating}</TableCell>
-                  ))}
-                  <TableCell></TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell className="font-medium">Тип дома</TableCell>
-                  {comparisonItems.map((item) => (
-                    <TableCell key={`${item.id}-building`}>{item.buildingType}</TableCell>
-                  ))}
-                  <TableCell></TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell></TableCell>
-                  {comparisonItems.map((item) => (
-                    <TableCell key={`${item.id}-action`}>
-                      <Link href={`/property/${item.id}`}>
-                        <Button className="w-full">Подробнее</Button>
-                      </Link>
-                    </TableCell>
-                  ))}
-                  <TableCell></TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
-          </div>
-        </TabsContent>
+                  </Link>
+                </CardContent>
+              </Card>
+          ))}
+        </div>
 
-        <TabsContent value="complexes">
-          <div className="text-center py-8 text-muted-foreground">У вас пока нет жилых комплексов для сравнения</div>
-        </TabsContent>
-      </Tabs>
-    </div>
+        {/* Desktop view - table */}
+        <div className="hidden lg:block">
+          <div className="overflow-x-auto">
+            <div className="min-w-full">
+              {/* Property cards row */}
+              <div
+                  className="grid grid-cols-1 gap-4 mb-6"
+                  style={{ gridTemplateColumns: `repeat(${comparison.length}, 1fr)` }}
+              >
+                {comparison.map((item) => (
+                    <Card key={item.id} className="relative">
+                      <Button
+                          variant="ghost"
+                          size="sm"
+                          className="absolute top-2 right-2 h-8 w-8 p-0 z-10"
+                          onClick={() => handleRemoveFromComparison(item.id)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                      <CardContent className="p-4">
+                        <div className="relative aspect-video rounded-lg overflow-hidden mb-4">
+                          <Image src={item.image || "/placeholder.svg"} alt={item.title} fill className="object-cover" />
+                        </div>
+                        <h3 className="font-bold text-lg mb-2">{item.title}</h3>
+                        <div className="flex items-center gap-2 text-muted-foreground mb-4">
+                          <MapPin className="h-4 w-4" />
+                          <span className="text-sm">{item.address}</span>
+                        </div>
+                        <Link href={`/property/${item.propertyId}`}>
+                          <Button className="w-full" size="sm">
+                            Подробнее
+                            <ArrowRight className="h-4 w-4 ml-2" />
+                          </Button>
+                        </Link>
+                      </CardContent>
+                    </Card>
+                ))}
+              </div>
+
+              {/* Comparison table */}
+              <Card>
+                <CardContent className="p-0">
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <tbody>
+                      {comparisonFields.map((field) => (
+                          <tr key={field.key} className="border-b">
+                            <td className="p-4 font-medium bg-muted/50 min-w-[150px]">{field.label}</td>
+                            {comparison.map((item) => (
+                                <td key={item.id} className="p-4 text-center">
+                                  {field.format((item as any)[field.key])}
+                                </td>
+                            ))}
+                          </tr>
+                      ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
+      </div>
   )
 }

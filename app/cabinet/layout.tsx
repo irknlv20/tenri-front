@@ -14,7 +14,7 @@ import {
   HelpCircle,
   PenToolIcon as Tool,
   FileSignature,
-  User,
+  User, Building, BarChart3, TrendingUp, CreditCard, MessageSquare, Wrench, PenTool,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -27,16 +27,15 @@ export default function CabinetLayout({ children }: CabinetLayoutProps) {
   const pathname = usePathname()
 
   const menuItems = [
-    { href: "/cabinet", icon: <Home className="h-5 w-5" />, label: "Мои объекты" },
-    { href: "/cabinet/purchase", icon: <ShoppingCart className="h-5 w-5" />, label: "Покупка" },
+    { href: "/cabinet", icon: <Home className="h-5 w-5" />, label: "Главная" },
     { href: "/cabinet/favorites", icon: <Heart className="h-5 w-5" />, label: "Избранное" },
     { href: "/cabinet/comparison", icon: <BarChart2 className="h-5 w-5" />, label: "Сравнение" },
-    { href: "/cabinet/mortgage", icon: <PiggyBank className="h-5 w-5" />, label: "Ипотека" },
     { href: "/cabinet/bookings", icon: <Calendar className="h-5 w-5" />, label: "Бронирования" },
-    { href: "/cabinet/support", icon: <HelpCircle className="h-5 w-5" />, label: "Сопровождение" },
-    { href: "/cabinet/services", icon: <Tool className="h-5 w-5" />, label: "Полезные сервисы" },
     { href: "/cabinet/documents", icon: <FileText className="h-5 w-5" />, label: "Документы" },
-    { href: "/cabinet/signature", icon: <FileSignature className="h-5 w-5" />, label: "Электронная подпись" },
+    { href: "/cabinet/payments", icon: <CreditCard className="h-5 w-5" />, label: "Платежи" },
+    { href: "/cabinet/deal-progress", icon: <TrendingUp className="h-5 w-5" />, label: "Прогресс сделки" },
+    { href: "/cabinet/mortgage", icon: <PiggyBank className="h-5 w-5" />, label: "Ипотека" },
+    { href: "/cabinet/support", icon: <HelpCircle className="h-5 w-5" />, label: "Поддержка" },
     { href: "/cabinet/profile", icon: <User className="h-5 w-5" />, label: "Профиль" },
   ]
 
@@ -46,22 +45,17 @@ export default function CabinetLayout({ children }: CabinetLayoutProps) {
 
       <div className="flex flex-col md:flex-row gap-8">
         <aside className="w-full md:w-64 shrink-0">
-          <nav className="space-y-1 bg-background rounded-lg shadow-sm">
-            {menuItems.map((item) => {
-              const isActive = item.href === "/cabinet" ? pathname === "/cabinet" : pathname.startsWith(item.href)
-
-              return (
-                <Link key={item.href} href={item.href}>
-                  <Button
-                    variant="ghost"
-                    className={cn("w-full justify-start gap-3 px-3 font-normal h-12", isActive && "bg-muted")}
-                  >
-                    {item.icon}
-                    <span>{item.label}</span>
-                  </Button>
-                </Link>
-              )
-            })}
+          <nav className="mt-6">
+            <ul>
+              {menuItems.map((item) => (
+                  <li key={item.label} className="px-4 py-2 hover:bg-gray-100">
+                    <a href={item.href} className="flex items-center gap-2">
+                      {item.icon}
+                      {item.label}
+                    </a>
+                  </li>
+              ))}
+            </ul>
           </nav>
         </aside>
 

@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Building, Calendar, Home, MapPin, Heart } from "lucide-react"
+import {Building, Calendar, Home, MapPin, Heart, BarChart3} from "lucide-react"
 import Image from "next/image"
 import MortgageCalculator from "@/components/mortgage-calculator"
 import ApartmentListings from "@/components/apartment-listings"
@@ -13,11 +13,14 @@ import { CabinetService } from "@/services/cabinet-service"
 import { notFound, useRouter } from "next/navigation"
 import { use, useEffect, useState } from "react"
 import { toast } from "sonner"
+import { FavoritesService, ComparisonService } from "@/lib/localStorage"
 
 export default function PropertyPage({ params }: { params: Promise<{ id: string }> }) {
   const [property, setProperty] = useState<any>()
   const [isLoading, setIsLoading] = useState(false)
   const [isFavorite, setIsFavorite] = useState(false)
+  const [isInCompare, setIsInCompare] = useState(false)
+
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const router = useRouter()
   const unwrappedParams = use(params)
@@ -52,36 +55,50 @@ export default function PropertyPage({ params }: { params: Promise<{ id: string 
       }
     }
 
+    setIsInCompare(ComparisonService.isInComparison(unwrappedParams.id))
+    setIsFavorite(FavoritesService.isInFavorites(unwrappedParams.id))
     getProperty()
-  }, [unwrappedParams.id])
+  }, [unwrappedParams.id, isFavorite, isInCompare])
 
-  const toggleFavorite = async () => {
+  const handleAddToComparison = () => {
     if (!isAuthenticated) {
-      // Redirect to login if not authenticated
       router.push("/login?redirect=" + encodeURIComponent(`/property/${unwrappedParams.id}`))
       return
     }
 
-    setIsLoading(true)
+    try {
+      if (ComparisonService.isInComparison(unwrappedParams.id)) {
+        toast.info("Объект уже добавлен в сравнение")
+        return
+      }
+
+      ComparisonService.add(property)
+      toast.success("Объект добавлен в сравнение")
+      setIsInCompare(true)
+    } catch (error) {
+      console.error("Error adding to comparison:", error)
+      toast.error(error instanceof Error ? error.message : "Ошибка при добавлении в сравнение")
+    }
+  }
+
+  const toggleFavorite = async () => {
+    if (!isAuthenticated) {
+      router.push("/login?redirect=" + encodeURIComponent(`/property/${unwrappedParams.id}`))
+      return
+    }
+
     try {
       if (isFavorite) {
-        // Need to find the favorite ID first
-        const favoritesResponse = await CabinetService.getFavorites()
-        const favorite = favoritesResponse.data.favorites.find(fav => fav.propertyId === unwrappedParams.id)
-        if (favorite) {
-          await CabinetService.removeFromFavorites(favorite.id)
-          toast.success("Removed from favorites")
-        }
+        FavoritesService.removeByPropertyId(unwrappedParams.id)
+        toast.success("Удалено из избранного")
       } else {
-        await CabinetService.addToFavorites(unwrappedParams.id)
-        toast.success("Added to favorites")
+        FavoritesService.add(property)
+        toast.success("Добавлено в избранное")
       }
       setIsFavorite(!isFavorite)
     } catch (error) {
       console.error("Error toggling favorite:", error)
-      toast.error("Failed to update favorites")
-    } finally {
-      setIsLoading(false)
+      toast.error("Ошибка при обновлении избранного")
     }
   }
 
@@ -186,15 +203,27 @@ export default function PropertyPage({ params }: { params: Promise<{ id: string 
                   </Button>
 
                   {isAuthenticated && (
-                      <Button
-                          variant="outline"
-                          className="w-full flex items-center gap-2"
-                          onClick={toggleFavorite}
-                          disabled={isLoading}
-                      >
-                        <Heart className={`h-4 w-4 ${isFavorite ? "fill-primary" : ""}`} />
-                        {isFavorite ? "В избранном" : "В избранное"}
-                      </Button>
+                      <>
+                        <Button
+                            variant="outline"
+                            className="w-full flex items-center gap-2"
+                            onClick={toggleFavorite}
+                            disabled={isLoading}
+                        >
+                          <Heart className={`h-4 w-4 ${isFavorite ? "fill-primary" : ""}`} />
+                          {isFavorite ? "В избранном" : "В избранное"}
+                        </Button>
+
+                        <Button
+                            variant="outline"
+                            className="w-full flex items-center gap-2"
+                            onClick={handleAddToComparison}
+                            disabled={isInCompare}
+                        >
+                          <BarChart3 className="h-4 w-4" />
+                          {isInCompare ? "В сравнении" : "Сравнить"}
+                        </Button>
+                      </>
                   )}
 
                   <MortgageModal propertyId={property.id} />
