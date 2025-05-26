@@ -41,7 +41,7 @@ export default function PropertyPage({ params }: { params: Promise<{ id: string 
         if (token) {
           try {
             const favoritesResponse = await CabinetService.getFavorites()
-            const favorites = favoritesResponse.data.favorites || []
+            const favorites = favoritesResponse?.data?.favorites || []
             setIsFavorite(favorites.some(fav => fav.propertyId === unwrappedParams.id))
           } catch (error) {
             console.error("Error checking favorites:", error)

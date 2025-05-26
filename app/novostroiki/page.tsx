@@ -51,7 +51,7 @@ export default function NewBuildingsPage() {
                 <div className="relative aspect-[16/9]">
                   <Image
                     src={property.image || "/placeholder.svg"}
-                    alt={property.title}
+                    alt={property.name}
                     fill
                     className="object-cover"
                   />
@@ -63,7 +63,7 @@ export default function NewBuildingsPage() {
                 </div>
                 <CardContent className="p-4">
                   <div className="mb-2">
-                    <h3 className="text-lg font-bold">{property.title}</h3>
+                    <h3 className="text-lg font-bold">{property.name}</h3>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <MapPin className="h-3 w-3" />
                       <span>{property.address}</span>

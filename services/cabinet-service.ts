@@ -57,6 +57,7 @@ export interface Favorite {
   developer: string
   addedDate: string
   badge?: string
+  data: any
 }
 
 export interface ComparisonItem {

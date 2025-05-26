@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -18,10 +18,11 @@ interface BookingDetailPageProps {
     }
 }
 
-export default function BookingDetailPage({ params }: BookingDetailPageProps) {
+export default function BookingDetailPage() {
     const [booking, setBooking] = useState<StoredBooking | null>(null)
     const [isLoading, setIsLoading] = useState(true)
     const router = useRouter()
+    const {id} = useParams();
 
     useEffect(() => {
         const loadBooking = () => {
@@ -29,7 +30,7 @@ export default function BookingDetailPage({ params }: BookingDetailPageProps) {
                 // Mark expired bookings first
                 BookingsService.markExpired()
 
-                const foundBooking = BookingsService.getById(params.id)
+                const foundBooking = BookingsService.getById(id)
                 if (!foundBooking) {
                     toast.error("Бронирование не найдено")
                     router.push("/cabinet/bookings")
@@ -47,7 +48,7 @@ export default function BookingDetailPage({ params }: BookingDetailPageProps) {
         }
 
         loadBooking()
-    }, [params.id, router])
+    }, [id, router])
 
     const handleExtendBooking = () => {
         if (!booking) return

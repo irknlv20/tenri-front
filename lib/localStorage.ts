@@ -23,6 +23,7 @@ export interface StoredFavorite {
     developer: string
     addedDate: string
     badge?: string
+    data?: Object
 }
 
 export interface StoredComparison {
