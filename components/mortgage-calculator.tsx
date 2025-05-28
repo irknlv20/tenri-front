@@ -3,75 +3,65 @@
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useState, useEffect } from "react"
-import { InquiryService } from "@/services/inquiry-service"
 import { useToast } from "@/hooks/use-toast"
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog"
+import Image from "next/image"
+import { Loader2 } from "lucide-react"
 
-export default function MortgageCalculator() {
-  const [propertyPrice, setPropertyPrice] = useState(15500000)
-  const [downPayment, setDownPayment] = useState(3100000)
+export default function MortgageCalculator({ property }: { property?: any }) {
+  const [propertyPrice, setPropertyPrice] = useState(property?.price || 15500000)
+  const [downPayment, setDownPayment] = useState(property?.price / 5 || 3100000)
   const [downPaymentPercent, setDownPaymentPercent] = useState(20)
   const [interestRate, setInterestRate] = useState(5.85)
   const [term, setTerm] = useState(25)
   const [monthlyPayment, setMonthlyPayment] = useState(0)
   const [loanAmount, setLoanAmount] = useState(0)
-  const [loading, setLoading] = useState(false)
+  const [showBanks, setShowBanks] = useState(false)
   const { toast } = useToast()
+  const [isLoadingBanks, setIsLoadingBanks] = useState(false)
 
-  // Расчет ипотеки при изменении параметров
   useEffect(() => {
-    const calculateMortgage = async () => {
-      try {
-        setLoading(true)
+    const calculateMortgage = () => {
+      const loan = propertyPrice - downPayment
+      setLoanAmount(loan)
 
-        const result = await InquiryService.calculateMortgage({
-          price: propertyPrice,
-          initialPayment: downPayment,
-          term: term,
-          rate: interestRate,
-        })
+      const monthlyRate = interestRate / 100 / 12
+      const numberOfPayments = term * 12
 
-        setMonthlyPayment(result.monthlyPayment)
-        setLoanAmount(result.loanAmount)
-      } catch (error) {
-        console.error("Error calculating mortgage:", error)
-        // Если API недоступно, рассчитываем на клиенте
-        const loan = propertyPrice - downPayment
-        setLoanAmount(loan)
-
-        const monthlyRate = interestRate / 100 / 12
-        const numberOfPayments = term * 12
-
-        if (monthlyRate === 0) {
-          setMonthlyPayment(loan / numberOfPayments)
-        } else {
-          const x = Math.pow(1 + monthlyRate, numberOfPayments)
-          const monthly = (loan * x * monthlyRate) / (x - 1)
-          setMonthlyPayment(monthly)
-        }
-      } finally {
-        setLoading(false)
+      if (monthlyRate === 0) {
+        setMonthlyPayment(loan / numberOfPayments)
+      } else {
+        const x = Math.pow(1 + monthlyRate, numberOfPayments)
+        const monthly = (loan * x * monthlyRate) / (x - 1)
+        setMonthlyPayment(monthly)
       }
     }
 
     calculateMortgage()
   }, [propertyPrice, downPayment, interestRate, term])
 
-  // Обновление первоначального взноса при изменении процента
   useEffect(() => {
     setDownPayment(Math.round(propertyPrice * (downPaymentPercent / 100)))
   }, [propertyPrice, downPaymentPercent])
 
-  // Обновление процента при изменении первоначального взноса
   const handleDownPaymentChange = (value: number) => {
     setDownPayment(value)
     setDownPaymentPercent(Math.round((value / propertyPrice) * 100))
   }
 
   const handleFindBank = () => {
-    toast({
-      title: "Поиск банка",
-      description: "Мы подберем для вас банк с лучшими условиями",
-    })
+    setIsLoadingBanks(true)
+    setShowBanks(true)
+    setTimeout(() => {
+      setIsLoadingBanks(false)
+    }, 1000)
   }
 
   return (
@@ -87,9 +77,6 @@ export default function MortgageCalculator() {
             onChange={(e) => setPropertyPrice(Number(e.target.value))}
             className="mt-1"
           />
-          <div className="h-1 bg-primary/20 mt-1 rounded-full">
-            <div className="h-full bg-primary rounded-full" style={{ width: "50%" }}></div>
-          </div>
         </div>
 
         <div>
@@ -103,9 +90,6 @@ export default function MortgageCalculator() {
             onChange={(e) => handleDownPaymentChange(Number(e.target.value))}
             className="mt-1"
           />
-          <div className="h-1 bg-primary/20 mt-1 rounded-full">
-            <div className="h-full bg-primary rounded-full" style={{ width: `${downPaymentPercent}%` }}></div>
-          </div>
         </div>
 
         <div>
@@ -132,41 +116,71 @@ export default function MortgageCalculator() {
             onChange={(e) => setTerm(Number(e.target.value))}
             className="mt-1"
           />
-          <div className="h-1 bg-primary/20 mt-1 rounded-full">
-            <div className="h-full bg-primary rounded-full" style={{ width: `${(term / 30) * 100}%` }}></div>
-          </div>
         </div>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 mt-6">
         <div>
           <label className="text-sm text-muted-foreground">Сумма кредита</label>
-          <div className="text-xl font-bold mt-1">
-            {loading ? (
-              <div className="animate-pulse h-7 w-32 bg-muted-foreground/20 rounded"></div>
-            ) : (
-              `${loanAmount.toLocaleString()} тенге`
-            )}
-          </div>
+          <div className="text-xl font-bold mt-1">{`${loanAmount} тенге`}</div>
         </div>
 
         <div>
           <label className="text-sm text-muted-foreground">Платеж в месяц</label>
-          <div className="text-xl font-bold mt-1">
-            {loading ? (
-              <div className="animate-pulse h-7 w-32 bg-muted-foreground/20 rounded"></div>
-            ) : (
-              `${Math.round(monthlyPayment).toLocaleString()} тенге`
-            )}
-          </div>
+          <div className="text-xl font-bold mt-1">{`${Math.round(monthlyPayment).toLocaleString()} тенге`}</div>
         </div>
       </div>
 
       <Button className="w-full mt-6" onClick={handleFindBank}>
-        Найти подходящий банк
+        Найти подходящий банк с минимальной ставкой
       </Button>
 
       <p className="text-xs text-muted-foreground text-center mt-2">Расчет не является публичной офертой</p>
+
+      {/* Модалка */}
+      <Dialog open={showBanks} onOpenChange={setShowBanks}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Подходящие банки</DialogTitle>
+            <DialogDescription>
+              На основе вашего запроса мы подобрали лучшие условия:
+            </DialogDescription>
+          </DialogHeader>
+
+          {isLoadingBanks ? (
+            <div className="flex justify-center items-center h-40">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : (
+            <div className="grid gap-4 mt-4">
+              <div className="flex items-center gap-4 p-4 border rounded-lg bg-green-50">
+                <Image src="/banks/otbasy.png" alt="Отбасы Банк" width={100} height={40} />
+                <div>
+                  <h3 className="font-semibold">🏆 Отбасы Банк</h3>
+                  <p className="text-sm text-muted-foreground">Ставка: 5.85% — самый выгодный вариант</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-4 p-4 border rounded-lg">
+                <Image src="/banks/halyk.png" alt="Халык Банк" width={100} height={40} />
+                <div>
+                  <h3 className="font-semibold">Халык Банк</h3>
+                  <p className="text-sm text-muted-foreground">Ставка: 7.2%</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-4 p-4 border rounded-lg">
+                <Image src="/banks/kaspi.png" alt="Kaspi Банк" width={100} height={40} />
+                <div>
+                  <h3 className="font-semibold">Kaspi Банк</h3>
+                  <p className="text-sm text-muted-foreground">Ставка: 8.1%</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
     </div>
   )
 }

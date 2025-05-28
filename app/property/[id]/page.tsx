@@ -156,7 +156,7 @@ export default function PropertyPage({ params }: { params: Promise<{ id: string 
           <ApartmentListings propertyId={property.id} />
 
           <div className="mt-8">
-            {/* <MortgageCalculator /> */}
+            <MortgageCalculator property={property}/>
           </div>
         </div>
 
