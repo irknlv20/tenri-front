@@ -450,3 +450,27 @@ export const CabinetService = {
   orderService: (data: ServiceOrder) =>
     api.post<{ success: boolean; message: string; serviceOrderId: string }>("/users/me/services", data),
 }
+
+export const updatePurchaseStep = async (propertyId: string, step: string) => {
+  return api.post("/users/me/purchases/update-step", {
+    propertyId,
+    step,
+  }, { headers: getAuthHeader() });
+};
+
+export const createPurchase = async (propertyId: string) => {
+  return api.post("/users/me/purchases/create", { propertyId }, { headers: getAuthHeader() });
+};
+
+export const getCurrentPurchaseStep = async (propertyId: string): Promise<string> => {
+  const response = await api.post("/users/me/purchases/current-step", { propertyId }, { headers: getAuthHeader() });
+  // @ts-ignore
+  return response.data.step;
+};
+
+export const getDocumentStatus = async (propertyId: string): Promise<string> => {
+  const response = await api.post("/users/me/purchases/document-status", { propertyId }, { headers: getAuthHeader() });
+  // @ts-ignore
+  return response.data.documentStatus; // "waiting", "uploaded", "verified"
+};
+

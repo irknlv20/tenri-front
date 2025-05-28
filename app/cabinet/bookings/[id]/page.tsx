@@ -11,6 +11,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { BookingsService, type StoredBooking } from "@/lib/localStorage"
 import { toast } from "sonner"
+import {createPurchase} from "@/services/cabinet-service";
 
 interface BookingDetailPageProps {
     params: {
@@ -67,6 +68,18 @@ export default function BookingDetailPage() {
         }
     }
 
+    const handlePurchase = async () => {
+        if (!booking) return
+
+        try {
+            await createPurchase(booking.id).then(()=> {
+                router.push(`/cabinet/purchase-process?bookingId=${booking.id}`)
+            });
+        } catch (error) {
+            console.error("Error starting purchase process:", error)
+            toast.error("Ошибка при переходе к покупке")
+        }
+    }
     const handleCancelBooking = () => {
         if (!booking) return
 
@@ -315,17 +328,13 @@ export default function BookingDetailPage() {
                             </CardHeader>
                             <CardContent className="space-y-3">
                                 <Link href={`/cabinet/purchase-process?bookingId=${booking.id}`}>
-                                    <Button className="w-full" size="lg">
-                                        <CheckCircle className="h-4 w-4 mr-2" />Я посмотрел квартиру и готов к покупке
+                                    <Button className="w-full" size="lg" onClick={handlePurchase}>
+                                        <CheckCircle className="h-4 w-4 mr-2" />Перейти к покупке
                                     </Button>
                                 </Link>
                                 <Button className="w-full" onClick={handleExtendBooking}>
                                     <CreditCard className="h-4 w-4 mr-2" />
                                     Продлить бронь
-                                </Button>
-                                <Button variant="outline" className="w-full">
-                                    <Download className="h-4 w-4 mr-2" />
-                                    Скачать документы
                                 </Button>
                                 <Button variant="outline" className="w-full" onClick={handleCancelBooking}>
                                     Отменить бронирование
