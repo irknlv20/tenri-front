@@ -36,17 +36,6 @@ export default function PropertyPage({ params }: { params: Promise<{ id: string 
         const response = await PropertyService.getProperty(unwrappedParams.id)
         if (!response?.data) return notFound()
         setProperty(response.data)
-
-        // If user is authenticated, check if property is in favorites
-        if (token) {
-          try {
-            const favoritesResponse = await CabinetService.getFavorites()
-            const favorites = favoritesResponse?.data?.favorites || []
-            setIsFavorite(favorites.some(fav => fav.propertyId === unwrappedParams.id))
-          } catch (error) {
-            console.error("Error checking favorites:", error)
-          }
-        }
       } catch (error) {
         console.error("Error loading property:", error)
         notFound()
