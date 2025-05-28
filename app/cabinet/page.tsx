@@ -8,14 +8,23 @@ import { Progress } from "@/components/ui/progress"
 import { MapPin, ArrowRight, Clock, CheckCircle, AlertCircle } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
+import {redirect, useRouter} from "next/navigation"
+
 import { PurchasesService, BookingsService, type StoredPurchase, type StoredBooking } from "@/lib/localStorage"
 
 export default function CabinetPage() {
   const [purchases, setPurchases] = useState<StoredPurchase[]>([])
   const [bookings, setBookings] = useState<StoredBooking[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const router = useRouter()
 
   useEffect(() => {
+    // Check if we have a token
+    const token = localStorage.getItem("token")
+    if (!token) {
+      router.replace("/login?redirect=/cabinet")
+      return
+    }
     loadData()
   }, [])
 

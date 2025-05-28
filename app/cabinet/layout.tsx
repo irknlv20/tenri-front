@@ -34,7 +34,7 @@ export default function CabinetLayout({ children }: CabinetLayoutProps) {
     { href: "/cabinet/documents", icon: <FileText className="h-5 w-5" />, label: "Документы" },
     { href: "/cabinet/payments", icon: <CreditCard className="h-5 w-5" />, label: "Платежи" },
     { href: "/cabinet/deal-progress", icon: <TrendingUp className="h-5 w-5" />, label: "Прогресс сделки" },
-    { href: "/cabinet/mortgage", icon: <PiggyBank className="h-5 w-5" />, label: "Ипотека" },
+    // { href: "/cabinet/mortgage", icon: <PiggyBank className="h-5 w-5" />, label: "Ипотека" },
     { href: "/cabinet/support", icon: <HelpCircle className="h-5 w-5" />, label: "Поддержка" },
     { href: "/cabinet/profile", icon: <User className="h-5 w-5" />, label: "Профиль" },
   ]
