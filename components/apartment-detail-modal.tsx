@@ -6,7 +6,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { X, Check, Calendar, Building } from "lucide-react"
 import Image from "next/image"
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogTrigger, DialogTitle } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import type { Apartment } from "@/services/property-service"
 
@@ -29,6 +29,7 @@ export default function ApartmentDetailModal({ apartment, trigger }: ApartmentDe
         )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogTitle className="sr-only">Детали квартиры</DialogTitle>
         <button
           onClick={() => setIsOpen(false)}
           className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 z-10"
@@ -43,17 +44,17 @@ export default function ApartmentDetailModal({ apartment, trigger }: ApartmentDe
           </h2>
           <div className="flex items-center gap-2 text-muted-foreground mb-4">
             <Building className="h-4 w-4" />
-            <span>{apartment.propertyName || apartment.building}</span>
+            <span>{apartment?.project?.name || ''} {apartment.building || ''}</span>
             <span className="mx-2">•</span>
             <Calendar className="h-4 w-4" />
             <span>Сдача: {apartment.completionDate}</span>
           </div>
 
           <Tabs defaultValue="details" className="w-full" onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-3 mb-4">
+            <TabsList className="grid w-full grid-cols-2 mb-4">
               <TabsTrigger value="details">Детали</TabsTrigger>
               <TabsTrigger value="floorplan">Планировка</TabsTrigger>
-              <TabsTrigger value="gallery">Галерея</TabsTrigger>
+              {/* <TabsTrigger value="gallery">Галерея</TabsTrigger> */}
             </TabsList>
 
             <TabsContent value="details" className="mt-0">
@@ -68,7 +69,7 @@ export default function ApartmentDetailModal({ apartment, trigger }: ApartmentDe
                       <div className="bg-muted/50 p-4 rounded-lg">
                         <div className="text-sm text-muted-foreground">Этаж</div>
                         <div className="text-xl font-medium">
-                          {apartment.floor} из {apartment.totalFloors}
+                          {apartment.floor}
                         </div>
                       </div>
                       <div className="bg-muted/50 p-4 rounded-lg">
@@ -100,12 +101,6 @@ export default function ApartmentDetailModal({ apartment, trigger }: ApartmentDe
 
                   <div className="space-y-2">
                     <Button className="w-full">Забронировать</Button>
-                    <Button variant="outline" className="w-full">
-                      Ипотечный калькулятор
-                    </Button>
-                    <Button variant="outline" className="w-full">
-                      Заказать звонок
-                    </Button>
                   </div>
 
                   <div className="bg-muted/20 p-4 rounded-lg">
@@ -150,7 +145,7 @@ export default function ApartmentDetailModal({ apartment, trigger }: ApartmentDe
               </div>
             </TabsContent>
 
-            <TabsContent value="gallery" className="mt-0">
+            {/* <TabsContent value="gallery" className="mt-0">
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 {apartment.images && apartment.images.length > 0
                   ? apartment.images.map((image, i) => (
@@ -174,7 +169,7 @@ export default function ApartmentDetailModal({ apartment, trigger }: ApartmentDe
                       </div>
                     ))}
               </div>
-            </TabsContent>
+            </TabsContent> */}
           </Tabs>
         </div>
       </DialogContent>
