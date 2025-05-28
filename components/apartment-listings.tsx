@@ -55,7 +55,7 @@ export default function ApartmentListings({ propertyId }: ApartmentListingsProps
             count: apartments.length,
             minPrice,
             apartments,
-            isOpen: type === "1-комнатные" || Object.keys(groupedApartments).length === 1, // По умолчанию открываем 1-комнатные или если только один тип
+            isOpen: true, // По умолчанию открываем 1-комнатные или если только один тип
           }
         })
 
@@ -148,7 +148,7 @@ export default function ApartmentListings({ propertyId }: ApartmentListingsProps
                           </div>
                           <div className="relative h-16 w-16">
                             <Image
-                                src={apt.floorPlanImage || apt.layout || "/placeholder.svg"}
+                                src={apt.layout || "/placeholder.svg"}
                                 alt="План квартиры"
                                 fill
                                 className="object-contain"
