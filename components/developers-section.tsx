@@ -38,7 +38,7 @@ export default function DevelopersSection() {
         </div>
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           {developers.map((developer) => (
-            <div key={developer.id}>
+            <Link key={developer.id} href={`/developer/${developer.id}`}>
               <Card className="overflow-hidden transition-all hover:shadow-md">
                 <CardContent className="p-6 flex flex-col items-center text-center">
                   <div className="relative h-16 w-32 mb-4">
@@ -53,7 +53,7 @@ export default function DevelopersSection() {
                   <p className="text-sm text-muted-foreground">{developer.projects.length} проектов</p>
                 </CardContent>
               </Card>
-            </div>
+            </Link>
           ))}
         </div>
       </div>
