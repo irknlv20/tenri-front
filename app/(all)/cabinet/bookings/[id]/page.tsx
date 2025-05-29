@@ -101,10 +101,14 @@ export default function BookingDetailPage() {
         switch (status.toLowerCase()) {
             case "active":
                 return "bg-green-500"
+            case "completed":
+                return "bg-green-500"
             case "expired":
                 return "bg-gray-500"
             case "cancelled":
                 return "bg-red-500"
+            case "in_progress":
+                return "bg-blue-500"
             default:
                 return "bg-blue-500"
         }
@@ -114,8 +118,12 @@ export default function BookingDetailPage() {
         switch (status.toLowerCase()) {
             case "active":
                 return "Активно"
+            case "completed":
+                return "Завершено"
             case "expired":
                 return "Истекло"
+            case "in_progress":
+                return "В процессе"
             case "cancelled":
                 return "Отменено"
             default:
@@ -280,15 +288,6 @@ export default function BookingDetailPage() {
                                 <span className="text-muted-foreground">Цена за м²:</span>
                                 <span className="font-medium">{booking.pricePerSqm.toLocaleString()} ₸</span>
                             </div>
-                            <Separator />
-                            <div className="flex justify-between">
-                                <span className="text-muted-foreground">Бронирование:</span>
-                                <span className="font-medium">{booking.bookingFee.toLocaleString()} ₸</span>
-                            </div>
-                            <div className="flex justify-between text-sm">
-                                <span className="text-muted-foreground">Статус оплаты:</span>
-                                <span className="text-green-600">Оплачено</span>
-                            </div>
                         </CardContent>
                     </Card>
 
@@ -343,7 +342,25 @@ export default function BookingDetailPage() {
                         </Card>
                     )}
 
-                    {booking.status !== "active" && (
+                    {booking.status === "in_progress" && (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Действия</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-3">
+                                <Link href={`/cabinet/purchase-process?bookingId=${booking.id}`}>
+                                    <Button className="w-full" size="lg" onClick={handlePurchase}>
+                                        <CheckCircle className="h-4 w-4 mr-2" />Продолжить покупку
+                                    </Button>
+                                </Link>
+                                <Button variant="outline" className="w-full" onClick={handleCancelBooking}>
+                                    Отменить процесс
+                                </Button>
+                            </CardContent>
+                        </Card>
+                    )}
+
+                    {(booking.status !== "active" && booking.status !== "in_progress") && (
                         <Card>
                             <CardHeader>
                                 <CardTitle>Действия</CardTitle>

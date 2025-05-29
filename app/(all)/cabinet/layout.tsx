@@ -32,7 +32,7 @@ export default function CabinetLayout({ children }: CabinetLayoutProps) {
     { href: "/cabinet/comparison", icon: <BarChart2 className="h-5 w-5" />, label: "Сравнение" },
     { href: "/cabinet/bookings", icon: <Calendar className="h-5 w-5" />, label: "Бронирования" },
     { href: "/cabinet/documents", icon: <FileText className="h-5 w-5" />, label: "Документы" },
-    { href: "/cabinet/payments", icon: <CreditCard className="h-5 w-5" />, label: "Платежи" },
+    // { href: "/cabinet/payments", icon: <CreditCard className="h-5 w-5" />, label: "Платежи" },
     { href: "/cabinet/deal-progress", icon: <TrendingUp className="h-5 w-5" />, label: "Прогресс сделки" },
     // { href: "/cabinet/mortgage", icon: <PiggyBank className="h-5 w-5" />, label: "Ипотека" },
     { href: "/cabinet/support", icon: <HelpCircle className="h-5 w-5" />, label: "Поддержка" },

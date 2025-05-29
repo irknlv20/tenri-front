@@ -6,7 +6,7 @@ import HeroSection from "@/components/hero-section"
 import PromotionsSection from "@/components/promotions-section"
 import SearchSection from "@/components/search-section"
 import RegistrationForm from "@/components/registration-form"
-import Loading from "./loading"
+import Loading from "../loading"
 
 export default function Home() {
   return (

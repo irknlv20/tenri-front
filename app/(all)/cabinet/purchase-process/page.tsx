@@ -20,7 +20,7 @@ import {
     ArrowRight,
     ArrowLeft,
     Upload,
-    Download
+    Download, MapPin
 } from "lucide-react"
 import {
     BookingsService,
@@ -81,7 +81,7 @@ export default function PurchaseProcessPage() {
             setIsLoading(true)
             try {
                 const step = await getCurrentPurchaseStep(propertyId)
-                const stepNumber = Number(step.replace("step-", "")) + 1
+                const stepNumber = Number(step.replace("step-", ""))
                 setCurrentStep(stepNumber)
 
                 const docStatus = await getDocumentStatus(propertyId)
@@ -92,6 +92,22 @@ export default function PurchaseProcessPage() {
                     status: docStatus || "required",
                 }))
                 setDocuments(updatedDocuments)
+
+                const raw = localStorage.getItem("tenri_bookings")
+                if (raw) {
+                    const bookings = JSON.parse(raw)
+                    const updated = bookings.map((b: any) => {
+                        if (b.id === propertyId && stepNumber < 5) {
+                            return {
+                                ...b,
+                                status: "in_progress",
+                                nextStep: "Оформление в процессе",
+                            }
+                        }
+                        return b
+                    })
+                    localStorage.setItem("tenri_bookings", JSON.stringify(updated))
+                }
             } catch (err) {
                 toast.error("Ошибка загрузки данных")
             } finally {
@@ -106,13 +122,32 @@ export default function PurchaseProcessPage() {
         }
     }, [propertyId])
 
-
-
     const handleNextStep = async () => {
         try {
             setIsLoading(true)
             await updatePurchaseStep(propertyId, `step-${currentStep}`)
-            setCurrentStep((prev) => prev + 1)
+
+            if (currentStep === STEPS.length) {
+                const raw = localStorage.getItem("tenri_bookings")
+                if (raw) {
+                    const bookings = JSON.parse(raw)
+                    const updated = bookings.map((b: any) =>
+                        b.id === propertyId
+                            ? {
+                                ...b,
+                                status: "completed",
+                                nextStep: "Оформление завершено",
+                            }
+                            : b
+                    )
+                    localStorage.setItem("tenri_bookings", JSON.stringify(updated))
+                    toast.success("Статус обновлён: Завершено")
+                }
+
+                router.push("/cabinet")
+            } else {
+                setCurrentStep((prev) => prev + 1)
+            }
         } catch (err) {
             console.error(err)
             toast.error("Ошибка при обновлении шага")
@@ -120,6 +155,7 @@ export default function PurchaseProcessPage() {
             setIsLoading(false)
         }
     }
+
 
     const handleFileUpload = async (documentId: string, event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0]
@@ -161,7 +197,61 @@ export default function PurchaseProcessPage() {
                 <CardContent className="space-y-6">
                     <Progress value={progress} className="mb-6" />
 
-                    {currentStep === 1 && <div>Шаг 1: Подтверждение</div>}
+                    {currentStep === 1 && booking && (
+                        <div className="space-y-6">
+                            <h3 className="text-lg font-medium">Начало оформления</h3>
+
+                            <div className="bg-muted p-4 rounded-lg">
+                                <p className="text-sm text-muted-foreground">
+                                    Вы начинаете процесс оформления выбранного вами объекта недвижимости. Пожалуйста, последовательно пройдите все этапы,
+                                    чтобы успешно завершить сделку.
+                                </p>
+                            </div>
+
+                            <Card className="overflow-hidden">
+                                <CardContent className="p-0">
+                                    <div className="flex flex-col md:flex-row">
+                                        <div className="relative w-full md:w-1/4 aspect-video md:aspect-auto">
+                                            <Image
+                                                src={booking.image || "/placeholder.svg"}
+                                                alt={booking.title}
+                                                fill
+                                                className="object-cover"
+                                            />
+                                        </div>
+
+                                        <div className="p-6 flex-1 space-y-3">
+                                            <h4 className="text-xl font-bold">{booking.title}</h4>
+                                            <div className="text-sm text-muted-foreground flex items-center gap-2">
+                                                <MapPin className="h-4 w-4" />
+                                                {booking.address}
+                                            </div>
+
+                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                                <div>
+                                                    <div className="text-sm text-muted-foreground">Площадь</div>
+                                                    <div className="font-medium">{booking.area} м²</div>
+                                                </div>
+                                                <div>
+                                                    <div className="text-sm text-muted-foreground">Этаж</div>
+                                                    <div className="font-medium">{booking.floor}</div>
+                                                </div>
+                                                <div>
+                                                    <div className="text-sm text-muted-foreground">Стоимость</div>
+                                                    <div className="font-medium">{booking.price.toLocaleString()} ₸</div>
+                                                </div>
+                                                <div>
+                                                    <div className="text-sm text-muted-foreground">Корпус</div>
+                                                    <div className="font-medium">{booking.apartment?.building || "-"}</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    )}
+
 
                     {currentStep === 2 && (
                         <div className="space-y-4">
@@ -262,11 +352,11 @@ export default function PurchaseProcessPage() {
                             </div>
                             <h3 className="text-2xl font-bold">Поздравляем!</h3>
                             <p className="text-muted-foreground">
-                                Все документы оформлены. Вы можете получить ключи от вашей новой квартиры!
+                                Все документы оформлены!
                             </p>
                             <div className="bg-green-50 p-4 rounded-lg">
                                 <p className="text-sm text-green-700">
-                                    Обратитесь в офис продаж для получения ключей и документов на квартиру.
+                                    Обратитесь в офис продаж для получения дополнительно информации.
                                 </p>
                             </div>
                         </div>

@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { MapPin, ArrowRight, Clock, CheckCircle, AlertCircle } from "lucide-react"
+import {MapPin, ArrowRight, Clock, CheckCircle, AlertCircle, CirclePlay} from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
 import {redirect, useRouter} from "next/navigation"
@@ -31,16 +31,22 @@ export default function CabinetPage() {
   const loadData = () => {
     try {
       const allPurchases = PurchasesService.getAll()
-      const activeBookings = BookingsService.getByStatus("active")
+      const allBookings = BookingsService.getAll()
+
+      // Показываем только активные и в процессе бронирования
+      const relevantBookings = allBookings.filter((b) =>
+          ["active", "in_progress", "completed"].includes(b.status)
+      )
 
       setPurchases(allPurchases)
-      setBookings(activeBookings)
+      setBookings(relevantBookings)
     } catch (error) {
       console.error("Error loading data:", error)
     } finally {
       setIsLoading(false)
     }
   }
+
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -72,6 +78,7 @@ export default function CabinetPage() {
     }
   }
 
+
   if (isLoading) {
     return (
         <div>
@@ -92,10 +99,10 @@ export default function CabinetPage() {
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-2">
-                <CheckCircle className="h-5 w-5 text-green-500" />
+                <CirclePlay className="h-5 w-5 text-green-500" />
                 <div>
                   <p className="text-sm text-muted-foreground">Покупки в процессе</p>
-                  <p className="text-xl font-bold">{purchases.filter((p) => p.status === "in_progress").length}</p>
+                  <p className="text-xl font-bold">{bookings.filter((p) => p.status === "in_progress").length}</p>
                 </div>
               </div>
             </CardContent>
@@ -107,7 +114,7 @@ export default function CabinetPage() {
                 <Clock className="h-5 w-5 text-blue-500" />
                 <div>
                   <p className="text-sm text-muted-foreground">Активные брони</p>
-                  <p className="text-xl font-bold">{bookings.length}</p>
+                  <p className="text-xl font-bold">{bookings.filter((p) => p.status === "active").length}</p>
                 </div>
               </div>
             </CardContent>
@@ -116,11 +123,11 @@ export default function CabinetPage() {
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-2">
-                <AlertCircle className="h-5 w-5 text-orange-500" />
+                <CheckCircle className="h-5 w-5 text-green-500" />
                 <div>
-                  <p className="text-sm text-muted-foreground">Требует внимания</p>
+                  <p className="text-sm text-muted-foreground">Завершенные</p>
                   <p className="text-xl font-bold">
-                    {purchases.filter((p) => p.status === "in_progress" && p.currentStep <= 3).length}
+                    {bookings.filter((p) => p.status === "completed").length}
                   </p>
                 </div>
               </div>
@@ -222,7 +229,7 @@ export default function CabinetPage() {
         {/* Активные бронирования */}
         {bookings.length > 0 && (
             <div className="mb-8">
-              <h3 className="text-xl font-bold mb-4">Активные бронирования</h3>
+              <h3 className="text-xl font-bold mb-4">Активные объекты</h3>
               <div className="space-y-4">
                 {bookings.map((booking) => (
                     <Card key={booking.id} className="overflow-hidden">
@@ -268,9 +275,19 @@ export default function CabinetPage() {
                             </div>
 
                             <div className="flex items-center gap-2 text-sm text-primary mb-4">
-                              <Clock className="h-4 w-4" />
-                              <span>{booking.nextStep}</span>
+                              {booking.status === "completed" ? (
+                                  <>
+                                    <CheckCircle className="h-4 w-4 text-green-600" />
+                                    <span className="text-green-600">{booking.nextStep}</span>
+                                  </>
+                              ) : (
+                                  <>
+                                    <Clock className="h-4 w-4" />
+                                    <span>{booking.nextStep}</span>
+                                  </>
+                              )}
                             </div>
+
 
                             <div className="flex flex-wrap gap-2">
                               <Link href={`/cabinet/bookings/${booking.id}`}>
